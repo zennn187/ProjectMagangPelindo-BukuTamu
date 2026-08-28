@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html.lenis,
+html.lenis body {
+    height: auto;
+}
+
+.lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+    overflow: hidden;
+}
+
+@layer components {
+    /* Glassmorphism - versi gelap (kiosk) */
+    .glass {
+        @apply bg-white/15 backdrop-blur-md border border-white/20 shadow-lg shadow-black/10;
+    }
+    /* Kartu admin/dashboard - gaya BankDash (putih solid, tanpa blur) */
+    .glass-card {
+        @apply bg-white border border-bank-light/60 shadow-sm;
+    }
+    /* Glassmorphism kuat - kartu form kiosk */
+    .glass-strong {
+        @apply bg-white/95 backdrop-blur-sm border border-white/60 shadow-2xl;
+    }
+    .glass-sidebar {
+        @apply bg-white/90 backdrop-blur-sm border-r border-white/60;
+    }
+}
