@@ -86,10 +86,10 @@
                                 <td class="px-5 py-3 text-right">
                                     <div class="inline-flex gap-2">
                                         <a href="{{ route('admin.services.edit', $service) }}" class="rounded-lg bg-bank-light px-3 py-1.5 text-xs font-medium text-bank-navy hover:bg-bank-light/70">Edit</a>
-                                        <form method="POST" action="{{ route('admin.services.destroy', $service) }}" onsubmit="return confirm('Hapus layanan ini?')">
+                                        <form method="POST" action="{{ route('admin.services.destroy', $service) }}" data-confirm="Hapus layanan ini? Data akan hilang permanen dari sistem." data-confirm-title="Hapus layanan" data-confirm-action="Ya, hapus" data-confirm-variant="danger">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="rounded-lg bg-bank-red/10 px-3 py-1.5 text-xs font-medium text-bank-red hover:bg-bank-red/20">Hapus</button>
+                                            <button type="submit" class="rounded-lg bg-bank-red/10 px-3 py-1.5 text-xs font-medium text-bank-red hover:bg-bank-red/20">Hapus</button>
                                         </form>
                                     </div>
                                 </td>

@@ -52,6 +52,9 @@ class VisitWhatsAppFlowTest extends TestCase
             'delivery_pref' => null,
             'status' => Visit::STATUS_PENDING,
         ]);
+        $visit = Visit::where('visitor_name', 'Nafisa')->firstOrFail();
+        $this->assertNotNull($visit->photo_path);
+        Storage::disk('public')->assertExists($visit->photo_path);
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://wa.example.test/send'

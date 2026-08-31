@@ -14,13 +14,34 @@ class EmployeeController extends Controller
     /**
      * Display a listing of the employees (admin only).
      */
-    public function index(): View
+    public function index(Request $request): View
     {
         Gate::authorize('is-admin');
 
-        $employees = Employee::orderBy('name')->paginate(15);
+        $query = Employee::query();
+        $search = trim((string) $request->input('search', ''));
+        $status = $request->input('status', 'all');
+        $department = trim((string) $request->input('department', ''));
 
-        return view('admin.employees.index', compact('employees'));
+        if ($search !== '') {
+            $query->where(function ($inner) use ($search) {
+                $inner->where('name', 'like', "%{$search}%")
+                    ->orWhere('department', 'like', "%{$search}%")
+                    ->orWhere('position', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status !== 'all') {
+            $query->where('is_active', $status === 'active');
+        }
+
+        if ($department !== '') {
+            $query->where('department', 'like', "%{$department}%");
+        }
+
+        $employees = $query->orderBy('name')->paginate(10)->appends($request->query());
+
+        return view('admin.employees.index', compact('employees', 'search', 'status', 'department'));
     }
 
     /**

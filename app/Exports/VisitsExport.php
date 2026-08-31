@@ -27,8 +27,8 @@ class VisitsExport implements FromCollection, WithHeadings, WithMapping
     public function collection(): \Illuminate\Support\Collection
     {
         return Visit::with('employee')
-            ->when($this->from, fn ($q) => $q->whereDate('created_at', '>=', $this->from))
-            ->when($this->to, fn ($q) => $q->whereDate('created_at', '<=', $this->to))
+            ->when($this->from, fn ($q) => $q->whereDate('created_at', '>=', $this->from->toDateString()))
+            ->when($this->to, fn ($q) => $q->whereDate('created_at', '<=', $this->to->toDateString()))
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function (Visit $visit) {

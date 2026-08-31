@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::get('/', [KioskController::class, 'index'])->name('kiosk');
+Route::view('/welcome', 'welcome')->name('welcome');
+Route::view('/landing', 'welcome')->name('landing');
 Route::post('/kiosk', [KioskController::class, 'store'])->name('kiosk.store');
 Route::get('/badge/{token}', [KioskController::class, 'badge'])->name('badge');
 
@@ -26,6 +28,7 @@ Route::get('/badge/{token}', [KioskController::class, 'badge'])->name('badge');
 */
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [VisitController::class, 'index'])->name('dashboard');
+    Route::get('/visits/{visit}/photo', [VisitController::class, 'photo'])->name('visits.photo');
 
     // Daftar layanan/pelayanan (dilihat oleh semua operator, dikelola admin)
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');

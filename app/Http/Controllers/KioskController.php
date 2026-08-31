@@ -48,6 +48,12 @@ class KioskController extends Controller
         $photoPath = null;
         if (! empty($data['photo'])) {
             $photoPath = $this->storePhoto($data['photo']);
+
+            if ($photoPath === null) {
+                return response()->json([
+                    'message' => 'Foto gagal disimpan. Silakan ambil foto kembali lalu coba lagi.',
+                ], 422);
+            }
         }
 
         $visit = Visit::create([
@@ -97,19 +103,19 @@ class KioskController extends Controller
     /**
      * Decode the base64 data-URL photo and persist it under storage/app/public/visits.
      */
-    protected function storePhoto(string $dataUrl): string
+    protected function storePhoto(string $dataUrl): ?string
     {
         // Strip the "data:image/...;base64," prefix.
         $base64 = preg_replace('#^data:image/\w+;base64,#i', '', $dataUrl);
 
         if (! $base64 || ! Str::startsWith($dataUrl, 'data:image/')) {
-            return '';
+            return null;
         }
 
         $image = base64_decode($base64, true);
 
         if ($image === false) {
-            return '';
+            return null;
         }
 
         $filename = 'visits/'.Str::uuid().'.jpg';
@@ -118,7 +124,7 @@ class KioskController extends Controller
         $path = \Storage::disk('public')->put($filename, $image);
 
         if (! $path) {
-            return '';
+            return null;
         }
 
         return $filename;

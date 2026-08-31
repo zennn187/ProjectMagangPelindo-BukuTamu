@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class VisitController extends Controller
@@ -15,22 +16,45 @@ class VisitController extends Controller
     /**
      * Receptionist/operator dashboard showing today's visits.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $todayVisits = Visit::with('employee')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $selectedDay = $request->date('day') ?? now()->toDateString();
+        $search = trim((string) $request->input('search', ''));
 
-        // Count from the same dataset as the table (all visits) so cards stay in sync.
+        $query = Visit::with('employee')
+            ->when($selectedDay, fn ($q) => $q->whereDate('created_at', $selectedDay))
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($inner) use ($search) {
+                    $inner->where('visitor_name', 'like', "%{$search}%")
+                        ->orWhere('visitor_institution', 'like', "%{$search}%")
+                        ->orWhere('visitor_phone', 'like', "%{$search}%")
+                        ->orWhere('purpose', 'like', "%{$search}%")
+                        ->orWhereHas('employee', fn ($employeeQuery) => $employeeQuery->where('name', 'like', "%{$search}%"));
+                });
+            });
+
+        $visits = $query->orderBy('created_at', 'desc')->paginate(5)->appends($request->query());
+
+        $countsQuery = Visit::query()
+            ->when($selectedDay, fn ($q) => $q->whereDate('created_at', $selectedDay))
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($inner) use ($search) {
+                    $inner->where('visitor_name', 'like', "%{$search}%")
+                        ->orWhere('visitor_institution', 'like', "%{$search}%")
+                        ->orWhere('visitor_phone', 'like', "%{$search}%")
+                        ->orWhere('purpose', 'like', "%{$search}%")
+                        ->orWhereHas('employee', fn ($employeeQuery) => $employeeQuery->where('name', 'like', "%{$search}%"));
+                });
+            });
+
         $counts = [
-            'pending' => Visit::where('status', Visit::STATUS_PENDING)->count(),
-            'waiting' => Visit::where('status', Visit::STATUS_WAITING)->count(),
-            'active' => Visit::where('status', Visit::STATUS_ACTIVE)->count(),
-            'completed' => Visit::where('status', Visit::STATUS_COMPLETED)->count(),
-            'rejected' => Visit::where('status', Visit::STATUS_REJECTED)->count(),
+            'pending' => (clone $countsQuery)->where('status', Visit::STATUS_PENDING)->count(),
+            'waiting' => (clone $countsQuery)->where('status', Visit::STATUS_WAITING)->count(),
+            'active' => (clone $countsQuery)->where('status', Visit::STATUS_ACTIVE)->count(),
+            'completed' => (clone $countsQuery)->where('status', Visit::STATUS_COMPLETED)->count(),
+            'rejected' => (clone $countsQuery)->where('status', Visit::STATUS_REJECTED)->count(),
         ];
 
-        // Aktivitas 7 hari terakhir (untuk grafik batang dashboard).
         $weekly = collect(range(6, 0))->map(function (int $i) {
             $day = now()->subDays($i);
 
@@ -41,10 +65,23 @@ class VisitController extends Controller
             ];
         });
 
-        // Ringkasan kunjungan terbaru untuk panel "Kunjungan Terbaru".
-        $recentVisits = Visit::with('employee')->latest()->take(5)->get();
+        $recentVisits = Visit::with('employee')
+            ->when($selectedDay, fn ($q) => $q->whereDate('created_at', $selectedDay))
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get();
 
-        return view('reception.dashboard', compact('todayVisits', 'counts', 'weekly', 'recentVisits'));
+        return view('reception.dashboard', compact('visits', 'counts', 'weekly', 'recentVisits', 'selectedDay', 'search'));
+    }
+
+    /**
+     * Stream a visitor photo to authenticated reception and admin users.
+     */
+    public function photo(Visit $visit)
+    {
+        abort_unless($visit->photo_path && Storage::disk('public')->exists($visit->photo_path), 404);
+
+        return response()->file(Storage::disk('public')->path($visit->photo_path));
     }
 
     /**

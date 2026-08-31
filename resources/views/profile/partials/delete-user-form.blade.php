@@ -9,10 +9,11 @@
         </p>
     </header>
 
-    <x-danger-button
-        x-data=""
-        x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
-    >{{ __('Delete Account') }}</x-danger-button>
+    <form method="post" action="{{ route('profile.destroy') }}" data-confirm="Akun Anda akan dihapus secara permanen. Data dan semua catatan lama akan hilang dari sistem." data-confirm-title="Hapus akun" data-confirm-action="Ya, hapus akun" data-confirm-variant="danger">
+        @csrf
+        @method('delete')
+        <button type="submit" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">{{ __('Delete Account') }}</button>
+    </form>
 
     <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
         <form method="post" action="{{ route('profile.destroy') }}" class="p-6">

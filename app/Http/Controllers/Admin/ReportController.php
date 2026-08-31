@@ -20,18 +20,49 @@ class ReportController extends Controller
     {
         Gate::authorize('is-admin');
 
-        $from = $request->date('from') ?? Carbon::today()->startOfMonth();
-        $to = $request->date('to') ?? Carbon::today();
+        $from = $request->filled('from') ? $request->date('from') : Carbon::today();
+        $to = $request->filled('to') ? $request->date('to') : Carbon::today();
 
-        // Simple totals for the summary cards.
+        if ($from->greaterThan($to)) {
+            [$from, $to] = [$to, $from];
+        }
+
+        if (! $request->filled('from') && ! $request->filled('to')) {
+            $from = Carbon::today();
+            $to = Carbon::today();
+        }
+
+        $baseQuery = \App\Models\Visit::query()->whereBetween('created_at', [$from->startOfDay(), $to->endOfDay()]);
+
         $summary = [
-            'total' => \App\Models\Visit::whereBetween('created_at', [$from->startOfDay(), $to->endOfDay()])->count(),
-            'pending' => \App\Models\Visit::whereBetween('created_at', [$from->startOfDay(), $to->endOfDay()])->where('status', \App\Models\Visit::STATUS_PENDING)->count(),
-            'active' => \App\Models\Visit::whereBetween('created_at', [$from->startOfDay(), $to->endOfDay()])->where('status', \App\Models\Visit::STATUS_ACTIVE)->count(),
-            'completed' => \App\Models\Visit::whereBetween('created_at', [$from->startOfDay(), $to->endOfDay()])->where('status', \App\Models\Visit::STATUS_COMPLETED)->count(),
+            'total' => $baseQuery->count(),
+            'pending' => (clone $baseQuery)->where('status', \App\Models\Visit::STATUS_PENDING)->count(),
+            'active' => (clone $baseQuery)->where('status', \App\Models\Visit::STATUS_ACTIVE)->count(),
+            'completed' => (clone $baseQuery)->where('status', \App\Models\Visit::STATUS_COMPLETED)->count(),
         ];
 
-        return view('admin.reports.index', compact('from', 'to', 'summary'));
+        $chartData = collect();
+
+        $period = \Carbon\CarbonPeriod::create($from->copy()->startOfDay(), '1 day', $to->copy()->startOfDay());
+        foreach ($period as $date) {
+            $chartData->push([
+                'label' => $date->translatedFormat('d'),
+                'value' => \App\Models\Visit::whereDate('created_at', $date->toDateString())->count(),
+                'date' => $date->toDateString(),
+            ]);
+        }
+
+        if ($chartData->isEmpty()) {
+            $chartData->push([
+                'label' => $from->translatedFormat('d'),
+                'value' => 0,
+                'date' => $from->toDateString(),
+            ]);
+        }
+
+        $chartMax = $chartData->max('value') ?: 1;
+
+        return view('admin.reports.index', compact('from', 'to', 'summary', 'chartData', 'chartMax'));
     }
 
     /**
