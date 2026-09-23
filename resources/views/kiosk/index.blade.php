@@ -391,6 +391,86 @@
                     animation: none;
                 }
             }
+
+            /* ===== Floating WhatsApp button ===== */
+            .wa-float {
+                position: relative;
+                display: flex;
+                height: 3.5rem;
+                width: 3.5rem;
+                align-items: center;
+                justify-content: center;
+                border-radius: 9999px;
+                background: #25d366;
+                color: #fff;
+                box-shadow: 0 14px 30px rgba(37, 211, 102, 0.45);
+                transition: transform 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease;
+                z-index: 50;
+            }
+
+            .wa-float:hover {
+                transform: translateY(-3px) scale(1.06);
+                background: #1ebe5b;
+                box-shadow: 0 20px 40px rgba(37, 211, 102, 0.55);
+            }
+
+            .wa-float svg {
+                position: relative;
+                z-index: 2;
+                height: 1.9rem;
+                width: 1.9rem;
+            }
+
+            .wa-ping {
+                position: absolute;
+                inset: 0;
+                border-radius: 9999px;
+                background: #25d366;
+                animation: wa-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+            }
+
+            @keyframes wa-ping {
+                0% {
+                    transform: scale(1);
+                    opacity: 0.55;
+                }
+                75%, 100% {
+                    transform: scale(1.9);
+                    opacity: 0;
+                }
+            }
+
+            .wa-tip {
+                position: absolute;
+                right: 4.5rem;
+                top: 50%;
+                transform: translateY(-50%) translateX(6px);
+                white-space: nowrap;
+                padding: 0.55rem 0.9rem;
+                border-radius: 9999px;
+                background: rgba(9, 26, 58, 0.92);
+                color: #fff;
+                font-size: 0.72rem;
+                font-weight: 600;
+                letter-spacing: 0.02em;
+                box-shadow: 0 10px 24px rgba(9, 26, 58, 0.28);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.22s ease, transform 0.22s ease;
+                z-index: 50;
+            }
+
+            .wa-float:hover + .wa-tip,
+            .wa-float:focus-visible + .wa-tip {
+                opacity: 1;
+                transform: translateY(-50%) translateX(0);
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .wa-ping {
+                    animation: none;
+                }
+            }
         </style>
     </head>
     <body data-lenis x-data="{
@@ -805,6 +885,18 @@
 
         {{-- ============ FOOTER ============ --}}
         <div id="toast-container" class="toast-container"></div>
+
+        @if(!empty($waNumber) && strlen($waNumber) >= 10)
+        <div class="fixed bottom-5 right-5 flex items-center">
+            <span class="wa-tip">Chat Admin Resepsionis</span>
+            <a href="https://wa.me/{{ $waNumber }}?text={{ rawurlencode($waMessage) }}" target="_blank" rel="noopener" class="wa-float" aria-label="Hubungi kami via WhatsApp">
+                <span class="wa-ping" aria-hidden="true"></span>
+                <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
+                    <path d="M16.05 3.5C9.05 3.5 3.35 9.2 3.35 16.2c0 2.24.58 4.41 1.7 6.33L3.4 28.4l6.08-1.6c1.83 1 3.93 1.53 6.1 1.53 7 0 12.7-5.7 12.7-12.7S23.05 3.5 16.05 3.5zm8.25 13.36c.1.28.1.58.12.68-.26 1.1-1.4 2.06-2.3 2.64-.66.43-1.5.35-2.2.15-.95-.28-2.14-.68-4.1-2.2-2.06-1.53-3.28-3.02-3.7-3.76-.13-.22-.76-1.13-.78-2.18-.02-1.53 1.3-1.86 1.7-1.94.2-.04.52-.06.88-.03.24.02.47.2.67.55.3.52.98 1.7 1.08 1.84.1.13.16.3.02.49-.14.18-.26.32-.42.5-.14.14-.3.32-.13.62.16.3.72 1.18 1.54 1.9 1.05.94 1.94 1.23 2.22 1.36.27.13.43.1.58-.06.15-.16.67-.78.85-1.04.18-.26.36-.22.6-.13.24.1 1.55.72 1.8.85l.05.03c.22.1.37.15.47.23.01.06.01.4-.22.8z"/>
+                </svg>
+            </a>
+        </div>
+        @endif
 
         <footer class="bg-bank-navy text-white/70">
             <div class="mx-auto grid max-w-6xl gap-10 px-5 py-12 md:grid-cols-4">

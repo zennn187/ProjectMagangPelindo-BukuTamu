@@ -19,7 +19,7 @@
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
                 </button>
                 <div class="flex items-center gap-2">
-                    <span class="h-7 w-7 rounded-lg bg-bank-blue grid place-items-center font-bold text-white text-xs">BT</span>
+                    <img src="{{ asset('images/pelindo-logo.png') }}" alt="Logo Pelindo" class="h-7 w-7 rounded-lg object-contain bg-white">
                     <span class="font-semibold text-sm">Buku Tamu</span>
                 </div>
             </div>
@@ -28,7 +28,7 @@
 
             <aside class="fixed inset-y-0 left-0 z-40 w-64 bg-white flex flex-col transition-transform duration-200 -translate-x-full xl:translate-x-0" :class="open ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'">
                 <div class="h-16 flex items-center gap-3 px-6 shrink-0">
-                    <div class="h-9 w-9 rounded-lg bg-bank-blue grid place-items-center font-bold text-white text-sm">BT</div>
+                    <img src="{{ asset('images/pelindo-logo.png') }}" alt="Logo Pelindo" class="h-9 w-9 rounded-lg object-contain bg-white shrink-0">
                     <div>
                         <p class="text-sm font-bold leading-tight text-bank-navy">Buku Tamu</p>
                         <p class="text-[11px] text-bank-gray">Pelindo Regional 1</p>
@@ -45,6 +45,8 @@
                     @endphp
 
                     <a href="{{ route('dashboard') }}" class="{{ $bankMenu('Dashboard', request()->routeIs('dashboard')) }}"><span class="{{ $bankBar(request()->routeIs('dashboard')) }}"></span><span class="pl-6">Dashboard</span></a>
+                    <a href="{{ route('gate.scanner') }}" class="{{ $bankMenu('Scanner Gate', request()->routeIs('gate.scanner') || request()->routeIs('gate.scan')) }}"><span class="{{ $bankBar(request()->routeIs('gate.scanner') || request()->routeIs('gate.scan')) }}"></span><span class="pl-6">Scanner Gate</span></a>
+                    <a href="{{ route('gate-reports.index') }}" class="{{ $bankMenu('Kedatangan Tamu', request()->routeIs('gate-reports*')) }}"><span class="{{ $bankBar(request()->routeIs('gate-reports*')) }}"></span><span class="pl-6">Kedatangan Tamu</span></a>
                     <a href="{{ route('services.index') }}" class="{{ $bankMenu('Layanan', request()->routeIs('services.index') || request()->routeIs('admin.services*')) }}"><span class="{{ $bankBar(request()->routeIs('services.index') || request()->routeIs('admin.services*')) }}"></span><span class="pl-6">Layanan</span></a>
 
                     @if(auth()->user()->isAdmin())
@@ -59,7 +61,9 @@
 
                 <div class="border-t border-bank-light p-4 mt-auto shrink-0">
                     <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-full bg-bank-light grid place-items-center font-semibold text-bank-blue uppercase">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div>
+                        <div class="h-10 w-10 rounded-full bg-bank-light grid place-items-center overflow-hidden shrink-0">
+                            <img src="{{ asset('images/pelindo-logo.png') }}" alt="Logo Pelindo" class="h-6 w-6 object-contain">
+                        </div>
                         <div class="min-w-0 flex-1">
                             <p class="text-sm font-semibold truncate text-bank-navy">{{ auth()->user()->name }}</p>
                             <p class="text-[11px] text-bank-gray capitalize">{{ auth()->user()->role }}</p>

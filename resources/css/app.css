@@ -60,7 +60,7 @@ html.lenis body {
     button[class*="bg-bank-blue"],
     input[type="submit"][class*="bg-bank-blue"],
     .bg-bank-blue {
-        transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+        transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
         box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
     }
 
@@ -68,8 +68,34 @@ html.lenis body {
     button[class*="bg-bank-blue"]:hover,
     input[type="submit"][class*="bg-bank-blue"]:hover,
     .bg-bank-blue:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.24);
+        transform: translateY(-2px);
+        box-shadow: 0 16px 32px rgba(37, 99, 235, 0.28);
+    }
+
+    a[class*="bg-bank-blue"]:active,
+    button[class*="bg-bank-blue"]:active,
+    input[type="submit"][class*="bg-bank-blue"]:active,
+    .bg-bank-blue:active {
+        transform: translateY(1px) scale(0.98);
+        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.2);
+    }
+
+    /* Card hover elevation and smooth interaction */
+    .card-hover-effect {
+        transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+    .card-hover-effect:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+    }
+
+    /* Smooth placeholder interaction */
+    input::placeholder, textarea::placeholder {
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    input:focus::placeholder, textarea:focus::placeholder {
+        opacity: 0.5;
+        transform: translateX(4px);
     }
 
     .toast-container {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Visit;
 use App\Services\WhatsAppService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -18,7 +19,8 @@ class VisitController extends Controller
      */
     public function index(Request $request): View
     {
-        $selectedDay = $request->date('day') ?? now()->toDateString();
+        $selectedDay = $request->input('day');
+        $selectedDay = $selectedDay ? Carbon::parse($selectedDay)->format('Y-m-d') : now()->toDateString();
         $search = trim((string) $request->input('search', ''));
 
         $query = Visit::with('employee')
@@ -85,6 +87,66 @@ class VisitController extends Controller
     }
 
     /**
+     * Return the most recent visit records as JSON for live dashboard polling.
+     */
+    public function latest(Request $request): JsonResponse
+    {
+        Gate::authorize('is-receptionist-or-admin');
+
+        $selectedDay = $request->input('day');
+        $selectedDay = $selectedDay ? Carbon::parse($selectedDay)->format('Y-m-d') : now()->toDateString();
+        $search = trim((string) $request->input('search', ''));
+
+        $visits = Visit::with('employee')
+            ->when($selectedDay, fn ($q) => $q->whereDate('created_at', $selectedDay))
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($inner) use ($search) {
+                    $inner->where('visitor_name', 'like', "%{$search}%")
+                        ->orWhere('visitor_institution', 'like', "%{$search}%")
+                        ->orWhere('visitor_phone', 'like', "%{$search}%")
+                        ->orWhere('purpose', 'like', "%{$search}%")
+                        ->orWhereHas('employee', fn ($employeeQuery) => $employeeQuery->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get()
+            ->map(function (Visit $visit) {
+                return [
+                    'id' => $visit->id,
+                    'qr_code_token' => $visit->qr_code_token,
+                    'visitor_name' => $visit->visitor_name,
+                    'visitor_institution' => $visit->visitor_institution,
+                    'visitor_phone' => $visit->visitor_phone,
+                    'employee_name' => $visit->employee?->name ?? '—',
+                    'purpose' => $visit->purpose,
+                    'status' => $visit->status,
+                    'status_note' => $visit->status_note,
+                    'status_label' => [
+                        'pending' => 'Belum Verifikasi',
+                        'waiting' => 'Disuruh Menunggu',
+                        'active' => 'Di Dalam',
+                        'completed' => 'Selesai',
+                        'rejected' => 'Ditolak',
+                    ][$visit->status] ?? $visit->status,
+                    'visit_type' => $visit->visit_type,
+                    'delivery_pref' => $visit->delivery_pref,
+                    'received_by_name' => $visit->received_by_name,
+                    'created_at' => $visit->created_at->format('H:i'),
+                    'photo_url' => $visit->photo_path && Storage::disk('public')->exists($visit->photo_path)
+                        ? route('visits.photo', ['visit' => $visit], false)
+                        : null,
+                ];
+            });
+
+        return response()->json([
+            'visits' => $visits,
+            'total' => $visits->count(),
+            'selected_day' => $selectedDay,
+        ]);
+    }
+
+    /**
      * Verify a visitor: pending|waiting -> active (Check-in).
      */
     public function checkIn(Request $request, Visit $visit, WhatsAppService $whatsApp): RedirectResponse
@@ -98,7 +160,11 @@ class VisitController extends Controller
 
         $whatsApp->notifyVisitorAccepted($visit->fresh('employee'));
 
-        return back()->with('success', 'Kunjungan berhasil diverifikasi (Check-in).');
+        return back()->with('success', 'Kunjungan berhasil diverifikasi (Check-in).')->with('visit_action', [
+            'type' => 'check-in',
+            'visit_id' => $visit->id,
+            'visitor_name' => $visit->visitor_name,
+        ]);
     }
 
     /**
@@ -117,7 +183,11 @@ class VisitController extends Controller
             'status_note' => $data['note'] ?? null,
         ]);
 
-        return back()->with('success', 'Kunjungan diminta menunggu.');
+        return back()->with('success', 'Kunjungan diminta menunggu.')->with('visit_action', [
+            'type' => 'waiting',
+            'visit_id' => $visit->id,
+            'visitor_name' => $visit->visitor_name,
+        ]);
     }
 
     /**
@@ -132,7 +202,11 @@ class VisitController extends Controller
             'check_out_time' => now(),
         ]);
 
-        return back()->with('success', 'Kunjungan selesai (Check-out).');
+        return back()->with('success', 'Kunjungan selesai (Check-out).')->with('visit_action', [
+            'type' => 'check-out',
+            'visit_id' => $visit->id,
+            'visitor_name' => $visit->visitor_name,
+        ]);
     }
 
     /**
@@ -168,7 +242,11 @@ class VisitController extends Controller
 
         $visit->update(['status' => Visit::STATUS_REJECTED]);
 
-        return back()->with('success', 'Kunjungan ditolak.');
+        return back()->with('success', 'Kunjungan ditolak.')->with('visit_action', [
+            'type' => 'rejected',
+            'visit_id' => $visit->id,
+            'visitor_name' => $visit->visitor_name,
+        ]);
     }
 
     /**

@@ -2,35 +2,36 @@
 
 use App\Http\Controllers\Admin\BlacklistController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\GateReportController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\GateController;
 use App\Http\Controllers\KioskController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Public / Guest routes (Kiosk self-service)
-|--------------------------------------------------------------------------
-*/
 Route::get('/', [KioskController::class, 'index'])->name('kiosk');
 Route::view('/welcome', 'welcome')->name('welcome');
 Route::view('/landing', 'welcome')->name('landing');
 Route::post('/kiosk', [KioskController::class, 'store'])->name('kiosk.store');
 Route::get('/badge/{token}', [KioskController::class, 'badge'])->name('badge');
 
-/*
-|--------------------------------------------------------------------------
-| Authenticated: dashboard & approvals (receptionist & admin)
-|--------------------------------------------------------------------------
-*/
+Route::get('/gate/form', [GateController::class, 'form'])->name('gate.form');
+Route::post('/gate/form', [GateController::class, 'store'])->name('gate.store');
+Route::get('/gate/pass/{token}', [GateController::class, 'pass'])->name('gate.pass');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [VisitController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/latest', [VisitController::class, 'latest'])->name('dashboard.latest');
     Route::get('/visits/{visit}/photo', [VisitController::class, 'photo'])->name('visits.photo');
 
-    // Daftar layanan/pelayanan (dilihat oleh semua operator, dikelola admin)
+    Route::get('/gate/scanner', [GateController::class, 'scanner'])->name('gate.scanner');
+    Route::post('/gate/scanner', [GateController::class, 'scan'])->name('gate.scan');
+    Route::get('/gate-reports', [GateReportController::class, 'index'])->name('gate-reports.index');
+    Route::get('/gate-reports/latest', [GateReportController::class, 'latest'])->name('gate-reports.latest');
+
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
 
     Route::prefix('visits')->name('visits.')->group(function () {
@@ -42,11 +43,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-/*
-|--------------------------------------------------------------------------
-| Admin only (master data, users & reports)
-|--------------------------------------------------------------------------
-*/
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('employees', EmployeeController::class)->except(['show']);
     Route::resource('blacklists', BlacklistController::class)->except(['show']);

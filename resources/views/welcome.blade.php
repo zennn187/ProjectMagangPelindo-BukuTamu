@@ -11,13 +11,12 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="bg-bank-bg text-bank-navy antialiased selection:bg-bank-blue/20">
+        <x-splash />
         <header class="sticky top-0 z-40 border-b border-white/10 bg-bank-navy/85 backdrop-blur-xl">
             <nav class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3.5 md:px-8">
                 <a href="#top" class="flex items-center gap-3 min-w-0">
-                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20">
-                        <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M12 2a7 7 0 0 0-7 7v10.5a.5.5 0 0 0 .8.4L12 15l6.2 4.9a.5.5 0 0 0 .8-.4V9a7 7 0 0 0-7-7zm0 8a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/>
-                        </svg>
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/20">
+                        <img src="{{ asset('images/pelindo-logo.png') }}" alt="Logo Pelindo" class="h-8 w-8 object-contain">
                     </span>
                     <span class="leading-tight text-white">
                         <span class="block text-[10px] font-bold tracking-[0.24em] sm:text-xs">PELINDO</span>
@@ -336,10 +335,8 @@
             <div class="mx-auto grid max-w-6xl gap-10 px-5 py-10 md:grid-cols-4 md:px-8">
                 <div class="md:col-span-2">
                     <div class="flex items-center gap-3">
-                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-bank-blue text-white">
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                <path d="M12 2a7 7 0 0 0-7 7v10.5a.5.5 0 0 0 .8.4L12 15l6.2 4.9a.5.5 0 0 0 .8-.4V9a7 7 0 0 0-7-7zm0 8a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/>
-                            </svg>
+                        <span class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-bank-light ring-1 ring-bank-navy/10">
+                            <img src="{{ asset('images/pelindo-logo.png') }}" alt="Logo Pelindo" class="h-8 w-8 object-contain">
                         </span>
                         <span class="leading-tight text-bank-navy">
                             <span class="block text-xs font-bold tracking-[0.22em]">PELINDO</span>

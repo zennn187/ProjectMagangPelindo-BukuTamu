@@ -49,9 +49,37 @@ class WhatsAppService
         $this->send($visit->visitor_phone, $message);
     }
 
+    /**
+     * Send the one-time checkout barcode (as a link to the gate pass page)
+     * to the visitor's WhatsApp right after they register at the gate.
+     */
+    public function notifyVisitorCheckoutBarcode(Visit $visit): void
+    {
+        if (! $visit->visitor_phone || ! $visit->checkout_token) {
+            return;
+        }
+
+        $passUrl = route('gate.pass', $visit->checkout_token);
+
+        $message = sprintf(
+            "Halo Bapak/Ibu %s, pendaftaran kedatangan Anda di Pelabuhan Dumai sudah tercatat pukul %s.\n\n".
+            "Barcode CHECKOUT Anda (sekali pakai) tersedia pada tautan berikut:\n%s\n\n".
+            "Tunjukkan barcode tersebut kepada petugas security saat Anda keluar area. ".
+            "Barcode hanya dapat digunakan satu kali dan otomatis tercatat sebagai checkout di sistem.\n\n".
+            'Terima kasih. - Buku Tamu Digital Pelindo Regional 1 Dumai',
+            $visit->visitor_name,
+            now('Asia/Jakarta')->format('H:i'),
+            $passUrl
+        );
+
+        $this->send($visit->visitor_phone, $message);
+    }
+
     public function send(string $phoneNumber, string $message): bool
     {
         if (! config('services.whatsapp.enabled')) {
+            Log::info('WhatsApp notification skipped: service is disabled (set WHATSAPP_ENABLED=true).');
+
             return false;
         }
 

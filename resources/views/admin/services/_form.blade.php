@@ -54,10 +54,11 @@
             </div>
 
             <div class="flex items-center gap-3 mt-8">
-                <button type="submit" class="rounded-xl bg-bank-blue px-6 py-2.5 text-sm font-medium text-white shadow-lg shadow-bank-blue/25 hover:bg-indigo-700 transition-colors">
+                <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-bank-blue px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-bank-blue/25 hover:bg-indigo-700 active:scale-95 transition-all duration-200">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                     {{ $service->exists ? 'Simpan Perubahan' : 'Tambah Layanan' }}
                 </button>
-                <a href="{{ route('services.index') }}" class="rounded-xl bg-bank-light px-6 py-2.5 text-sm font-medium text-bank-navy hover:bg-bank-light/70">Batal</a>
+                <a href="{{ route('services.index') }}" class="rounded-xl bg-bank-light px-6 py-2.5 text-sm font-medium text-bank-navy hover:bg-bank-light/70 active:scale-95 transition-all duration-200">Batal</a>
             </div>
         </form>
     </div>

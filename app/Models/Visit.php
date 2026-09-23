@@ -34,6 +34,11 @@ class Visit extends Model
 
     public const DELIVERY_LEAVE = 'leave';
 
+    // Where the visit was registered
+    public const SOURCE_KIOSK = 'kiosk';
+
+    public const SOURCE_GATE = 'gate';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -54,6 +59,12 @@ class Visit extends Model
         'status_note',
         'check_in_time',
         'check_out_time',
+        'source',
+        'identity_number',
+        'plate_number',
+        'person_to_meet',
+        'checkout_token',
+        'checkout_used_at',
     ];
 
     /**
@@ -66,8 +77,34 @@ class Visit extends Model
         return [
             'check_in_time' => 'datetime',
             'check_out_time' => 'datetime',
+            'checkout_used_at' => 'datetime',
         ];
     }
+
+    /**
+     * Human readable duration between check-in and check-out, e.g. "4 jam 49 menit".
+     */
+    public function durationText(): ?string
+    {
+        if (! $this->check_in_time || ! $this->check_out_time) {
+            return null;
+        }
+
+        $totalMinutes = (int) round($this->check_in_time->diffInMinutes($this->check_out_time));
+        $hours = intdiv($totalMinutes, 60);
+        $minutes = $totalMinutes % 60;
+
+        if ($hours > 0 && $minutes > 0) {
+            return "{$hours} jam {$minutes} menit";
+        }
+
+        if ($hours > 0) {
+            return "{$hours} jam";
+        }
+
+        return "{$minutes} menit";
+    }
+
 
     /**
      * Helper: build a wa.me link to contact the visitor on WhatsApp.

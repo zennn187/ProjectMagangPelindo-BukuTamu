@@ -19,7 +19,18 @@ class KioskController extends Controller
     {
         $employees = Employee::active()->orderBy('name')->get();
 
-        return view('kiosk.index', compact('employees'));
+        // Nomor WhatsApp tujuan tombol floating (dari .env, bisa format 08xx atau 62xx).
+        $rawNumber = preg_replace('/[^0-9]/', '', (string) config('services.whatsapp.reception_number'));
+
+        // Konversi 08xx -> 628xx agar cocok untuk wa.me.
+        $plus62 = '62'.substr($rawNumber, 1);
+        $waNumber = strlen($rawNumber) >= 10 && str_starts_with($rawNumber, '0')
+            ? $plus62
+            : $rawNumber;
+
+        $waMessage = 'Halo Admin Buku Tamu Pelindo Regional 1 Dumai, saya ingin bertanya seputar kunjungan ke Pelabuhan Dumai.';
+
+        return view('kiosk.index', compact('employees', 'waNumber', 'waMessage'));
     }
 
     /**
