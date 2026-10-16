@@ -22,7 +22,7 @@ class GateReportController extends Controller
         Gate::authorize('is-receptionist-or-admin');
 
         $selectedDay = $request->filled('day')
-            ? Carbon::parse($request->input('day'))->format('Y-m-d')
+            ? $this->safeDay($request->input('day'))
             : now()->toDateString();
         $search = trim((string) $request->input('search', ''));
 
@@ -31,28 +31,39 @@ class GateReportController extends Controller
 
         $base = $this->gateQuery($selectedDay, $search);
 
-        $counts = [
-            'total' => (clone $base)->count(),
-            'inside' => (clone $base)->where('status', Visit::STATUS_ACTIVE)->count(),
-            'completed' => (clone $base)->where('status', Visit::STATUS_COMPLETED)->count(),
-        ];
+        $counts = \Illuminate\Support\Facades\Cache::remember(
+            'gate.counts.'.md5($selectedDay.'|'.$search),
+            120,
+            fn () => [
+                'total' => (clone $base)->count(),
+                'inside' => (clone $base)->where('status', Visit::STATUS_ACTIVE)->count(),
+                'completed' => (clone $base)->where('status', Visit::STATUS_COMPLETED)->count(),
+            ]
+        );
 
-        // Average visit duration today (in minutes).
-        $avgMinutes = (clone $base)
-            ->where('status', Visit::STATUS_COMPLETED)
-            ->whereNotNull('check_in_time')
-            ->whereNotNull('check_out_time')
-            ->get()
-            ->map(fn (Visit $v) => (int) round($v->check_in_time->diffInMinutes($v->check_out_time)))
-            ->avg();
+        // Average visit duration today (in minutes) — cached, single aggregate query.
+        $avgMinutes = \Illuminate\Support\Facades\Cache::remember(
+            'gate.avg.'.md5($selectedDay.'|'.$search),
+            120,
+            fn () => (clone $base)
+                ->where('status', Visit::STATUS_COMPLETED)
+                ->whereNotNull('check_in_time')
+                ->whereNotNull('check_out_time')
+                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, check_in_time, check_out_time)) as avg_min')
+                ->value('avg_min')
+        );
 
         $counts['avg_duration'] = $avgMinutes
             ? sprintf('%d jam %02d menit', intdiv((int) $avgMinutes, 60), (int) $avgMinutes % 60)
             : '-';
 
         // QR code to be printed and stuck on the security glass — guests scan it
-        // to open the gate registration form.
-        $glassQrSvg = QrCode::size(150)->color(9, 26, 58)->generate(route('gate.form'));
+        // to open the gate registration form. Cached: same SVG for 24h.
+        $glassQrSvg = \Illuminate\Support\Facades\Cache::remember(
+            'gate.glass-qr',
+            86400,
+            fn () => QrCode::size(150)->color(9, 26, 58)->generate(route('gate.form'))
+        );
 
         return view('admin.gate-reports', compact('visits', 'counts', 'selectedDay', 'search', 'glassQrSvg'));
     }
@@ -66,7 +77,7 @@ class GateReportController extends Controller
         Gate::authorize('is-receptionist-or-admin');
 
         $since = $request->filled('since')
-            ? Carbon::parse($request->input('since'))
+            ? $this->safeDateTime($request->input('since'))
             : now()->subMinutes(5);
 
         $visits = $this->gateQuery(now()->toDateString(), '')
@@ -103,7 +114,6 @@ class GateReportController extends Controller
                 'id' => $v->id,
                 'name' => $v->visitor_name,
                 'identity' => $v->identity_number,
-                'plate' => $v->plate_number,
                 'institution' => $v->visitor_institution,
                 'person_to_meet' => $v->person_to_meet,
                 'check_in' => $v->check_in_time?->format('H:i'),
@@ -128,10 +138,31 @@ class GateReportController extends Controller
                 $q->where(function ($inner) use ($search) {
                     $inner->where('visitor_name', 'like', "%{$search}%")
                         ->orWhere('identity_number', 'like', "%{$search}%")
-                        ->orWhere('plate_number', 'like', "%{$search}%")
                         ->orWhere('visitor_institution', 'like', "%{$search}%")
                         ->orWhere('person_to_meet', 'like', "%{$search}%");
                 });
             });
+    }
+
+    protected function safeDay(?string $day): string
+    {
+        try {
+            return Carbon::createFromFormat('Y-m-d', (string) $day)->format('Y-m-d');
+        } catch (\Throwable) {
+            try {
+                return Carbon::parse((string) $day)->format('Y-m-d');
+            } catch (\Throwable) {
+                return now()->toDateString();
+            }
+        }
+    }
+
+    protected function safeDateTime(?string $value): Carbon
+    {
+        try {
+            return Carbon::parse((string) $value);
+        } catch (\Throwable) {
+            return now()->subMinutes(5);
+        }
     }
 }

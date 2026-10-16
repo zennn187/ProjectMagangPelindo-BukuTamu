@@ -858,6 +858,11 @@
                         <input type="hidden" id="photo" name="photo">
                     </div>
 
+                    <label class="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-bank-gray">
+                        <input type="checkbox" name="consent" value="1" required class="mt-0.5 h-4 w-4 shrink-0 rounded border-bank-light text-bank-blue focus:ring-bank-blue/30">
+                        <span>Saya setuju data (nama, kontak, foto, keperluan) digunakan untuk pencatatan buku tamu Pelindo dan disimpan sesuai <a href="/privasi" target="_blank" class="font-medium text-bank-blue hover:underline">Kebijakan Privasi</a>. <span class="font-semibold text-red-500">*</span></span>
+                    </label>
+
                     <button type="submit" id="submit-btn" class="primary-action w-full rounded-xl bg-bank-blue py-3 text-white font-semibold shadow-[0_14px_30px_rgba(29,78,216,0.28)] hover:bg-indigo-700 disabled:opacity-50 transition-colors">
                         <span id="submit-label">Kirim Kunjungan</span>
                         <span id="submit-spinner" class="submit-spinner ml-2 hidden" aria-hidden="true"></span>
@@ -930,11 +935,13 @@
                         <li>Pelabuhan Dumai, Kota Dumai, Riau</li>
                         <li><a href="https://pelindo.id/port/pelabuhan-dumai" target="_blank" rel="noopener" class="font-medium text-white underline-offset-2 transition-colors hover:underline">pelindo.id/port/pelabuhan-dumai</a></li>
                         <li><a href="https://pelindo.id" target="_blank" rel="noopener" class="transition-colors hover:text-white">pelindo.id</a></li>
+                        <li><a href="/privasi" class="transition-colors hover:text-white">Kebijakan Privasi</a></li>
                     </ul>
                 </div>
             </div>
-            <div class="border-t border-white/10 py-5 text-center text-[11px] text-white/50">
+            <div class="border-t border-white/10 px-5 py-5 text-center text-[11px] text-white/50">
                 © {{ date('Y') }} PT. Pelabuhan Indonesia (Persero) — Regional 1 Dumai. Seluruh hak cipta dilindungi.
+                <span class="mt-1 block text-white/40">Cookie yang digunakan hanya session esensial (laravel_session, XSRF-TOKEN).</span>
             </div>
         </footer>
 

@@ -34,12 +34,33 @@ class ReportController extends Controller
 
         $baseQuery = \App\Models\Visit::query()->whereBetween('created_at', [$from->startOfDay(), $to->endOfDay()]);
 
-        $summary = [
-            'total' => $baseQuery->count(),
-            'pending' => (clone $baseQuery)->where('status', \App\Models\Visit::STATUS_PENDING)->count(),
-            'active' => (clone $baseQuery)->where('status', \App\Models\Visit::STATUS_ACTIVE)->count(),
-            'completed' => (clone $baseQuery)->where('status', \App\Models\Visit::STATUS_COMPLETED)->count(),
-        ];
+        // Satu query aggregate untuk semua ringkasan (bukan 4 query count terpisah),
+        // di-cache per rentang tanggal agar navigasi antar-menu tidak query ulang.
+        $cacheKey = 'reports.summary.'.$from->toDateString().'.'.$to->toDateString();
+
+        $summary = \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($baseQuery) {
+            $row = (clone $baseQuery)
+                ->selectRaw(
+                    'COUNT(*) as total, SUM(status = ?) as pending, SUM(status = ?) as active, SUM(status = ?) as completed',
+                    [\App\Models\Visit::STATUS_PENDING, \App\Models\Visit::STATUS_ACTIVE, \App\Models\Visit::STATUS_COMPLETED]
+                )
+                ->first();
+
+            return [
+                'total' => (int) ($row->total ?? 0),
+                'pending' => (int) ($row->pending ?? 0),
+                'active' => (int) ($row->active ?? 0),
+                'completed' => (int) ($row->completed ?? 0),
+            ];
+        });
+
+        // Chart harian: satu query GROUP BY (sebelumnya N query count — satu per hari).
+        $countsByDay = \Illuminate\Support\Facades\Cache::remember($cacheKey.'.chart', 60, function () use ($baseQuery) {
+            return (clone $baseQuery)
+                ->selectRaw('DATE(created_at) as day, COUNT(*) as total')
+                ->groupByRaw('DATE(created_at)')
+                ->pluck('total', 'day');
+        });
 
         $chartData = collect();
 
@@ -47,7 +68,7 @@ class ReportController extends Controller
         foreach ($period as $date) {
             $chartData->push([
                 'label' => $date->translatedFormat('d'),
-                'value' => \App\Models\Visit::whereDate('created_at', $date->toDateString())->count(),
+                'value' => (int) ($countsByDay[$date->toDateString()] ?? 0),
                 'date' => $date->toDateString(),
             ]);
         }

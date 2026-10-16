@@ -95,6 +95,9 @@ class WhatsAppService
         try {
             $response = Http::withToken($apiToken)
                 ->acceptJson()
+                ->timeout(5)
+                ->connectTimeout(3)
+                ->retry(1, 200)
                 ->post($apiUrl, [
                     'to' => $this->normalizePhone($phoneNumber),
                     'message' => $message,
@@ -143,12 +146,6 @@ class WhatsAppService
 
     protected function normalizePhone(string $phoneNumber): string
     {
-        $phone = preg_replace('/[^0-9]/', '', $phoneNumber) ?: '';
-
-        if (str_starts_with($phone, '0')) {
-            return '62'.substr($phone, 1);
-        }
-
-        return $phone;
+        return \App\Support\PhoneHelper::normalize($phoneNumber);
     }
 }

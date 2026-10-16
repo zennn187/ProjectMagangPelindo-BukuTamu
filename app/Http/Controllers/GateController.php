@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreGateVisitRequest;
 use App\Models\GateLog;
 use App\Models\Visit;
-use App\Services\WhatsAppService;
+use App\Services\PhotoService;
+use App\Support\PhoneHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -27,26 +29,17 @@ class GateController extends Controller
      * generate the one-time checkout token, log the entry, and send the
      * checkout barcode via WhatsApp.
      */
-    public function store(Request $request, WhatsAppService $whatsApp): JsonResponse
+    public function store(StoreGateVisitRequest $request, PhotoService $photos): JsonResponse
     {
-        $data = $request->validate([
-            'visitor_name' => ['required', 'string', 'max:255'],
-            'identity_number' => ['nullable', 'string', 'max:255'],
-            'plate_number' => ['nullable', 'string', 'max:20'],
-            'visitor_institution' => ['required', 'string', 'max:255'],
-            'purpose' => ['required', 'string', 'max:1000'],
-            'person_to_meet' => ['required', 'string', 'max:255'],
-            'visitor_phone' => ['required', 'string', 'max:20'],
-            'photo' => ['nullable', 'string'], // base64 data URL from webcam
-        ]);
+        $data = $request->validated();
 
         $photoPath = null;
         if (! empty($data['photo'])) {
-            $photoPath = $this->storePhoto($data['photo']);
+            $photoPath = $photos->store($data['photo']);
 
             if ($photoPath === null) {
                 return response()->json([
-                    'message' => 'Foto gagal disimpan. Silakan ambil foto kembali lalu coba lagi.',
+                    'message' => 'Foto gagal disimpan (maks 2MB, JPG/PNG). Silakan ambil foto kembali lalu coba lagi.',
                 ], 422);
             }
         }
@@ -62,8 +55,8 @@ class GateController extends Controller
             'status' => Visit::STATUS_ACTIVE, // guest is entering through the gate right now
             'check_in_time' => now(),
             'source' => Visit::SOURCE_GATE,
-            'identity_number' => $data['identity_number'] ?? null,
-            'plate_number' => $data['plate_number'] ?? null,
+            'identity_number' => $data['identity_number'],
+            'plate_number' => null, // dihentikan: gate kini memakai NIK sebagai tanda pengenal
             'person_to_meet' => $data['person_to_meet'],
         ]);
 
@@ -73,11 +66,11 @@ class GateController extends Controller
             'token' => $visit->qr_code_token,
         ]);
 
-        // Send the one-time checkout barcode to the guest's WhatsApp.
-        $whatsApp->notifyVisitorCheckoutBarcode($visit);
+        // Send the one-time checkout barcode to the guest's WhatsApp (queued, non-blocking).
+        \App\Jobs\SendWhatsAppNotification::dispatch($visit->id, 'checkout-barcode');
 
         return response()->json([
-            'message' => 'Pendaftaran berhasil. Barcode checkout telah dikirim ke WhatsApp Anda ('.$this->maskPhone($visit->visitor_phone).'). Tunjukkan barcode tersebut saat keluar.',
+            'message' => 'Pendaftaran berhasil. Barcode checkout telah dikirim ke WhatsApp Anda ('.PhoneHelper::mask($visit->visitor_phone).'). Tunjukkan barcode tersebut saat keluar.',
             'check_in_time' => $visit->check_in_time->format('H:i'),
         ]);
     }
@@ -186,6 +179,7 @@ class GateController extends Controller
                 $visit->durationText() ?? '-'
             ),
             'event' => $this->visitEvent($visit->fresh()),
+            'wa_url' => $visit->whatsappUrl($this->whatsappMessage($visit)),
         ]);
     }
 
@@ -226,7 +220,53 @@ class GateController extends Controller
             'title' => 'Check-in berhasil',
             'message' => "Selamat datang, {$visit->visitor_name}. Check-in tercatat pukul {$visit->check_in_time->format('H:i')}.",
             'event' => $this->visitEvent($visit->fresh()),
+            'wa_url' => $visit->whatsappUrl($this->whatsappMessage($visit)),
         ]);
+    }
+
+    /**
+     * Redirect straight to the visitor's WhatsApp chat (number taken from the
+     * gate registration form) with a pre-filled message — no manual typing
+     * or picking a contact needed.
+     */
+    public function chat(Visit $visit)
+    {
+        Gate::authorize('is-receptionist-or-admin');
+
+        $message = $this->whatsappMessage($visit);
+
+        if (! $visit->visitor_phone) {
+            return back()->with('error', "Nomor WhatsApp tamu {$visit->visitor_name} tidak tersedia.");
+        }
+
+        return redirect()->away($visit->whatsappUrl($message));
+    }
+
+    /**
+     * Build the automatic WhatsApp message for a visitor.
+     */
+    protected function whatsappMessage(Visit $visit): string
+    {
+        if ($visit->check_out_time) {
+            return sprintf(
+                "Halo Bapak/Ibu %s, terima kasih telah berkunjung ke PT. Pelindo (Persero) Regional 1 Dumai.\n\n".
+                "Kunjungan Anda tercatat:\nMasuk: %s\nKeluar: %s\nDurasi: %s\n\n".
+                'Semoga harimu menyenangkan. - Buku Tamu Digital Pelindo',
+                $visit->visitor_name,
+                $visit->check_in_time?->format('d/m/Y H:i') ?? '-',
+                $visit->check_out_time->format('d/m/Y H:i'),
+                $visit->durationText() ?? '-'
+            );
+        }
+
+        return sprintf(
+            "Halo Bapak/Ibu %s, kunjungan Anda di PT. Pelindo (Persero) Regional 1 Dumai tercatat masuk pukul %s.\n\n".
+            "Barcode checkout Anda (sekali pakai):\n%s\n\n".
+            'Tunjukkan barcode tersebut kepada petugas security saat keluar area. Terima kasih.',
+            $visit->visitor_name,
+            $visit->check_in_time?->format('H:i') ?? '-',
+            $visit->checkout_token ? route('gate.pass', $visit->checkout_token) : route('gate.form')
+        );
     }
 
     /**
@@ -238,52 +278,12 @@ class GateController extends Controller
             'id' => $visit->id,
             'name' => $visit->visitor_name,
             'institution' => $visit->visitor_institution,
-            'plate_number' => $visit->plate_number,
+            'identity_number' => $visit->identity_number,
             'person_to_meet' => $visit->person_to_meet,
             'check_in' => $visit->check_in_time?->format('H:i'),
             'check_out' => $visit->check_out_time?->format('H:i'),
             'duration' => $visit->durationText(),
             'status' => $visit->status,
         ];
-    }
-
-    /**
-     * Mask phone number for confirmation messages: 0812xxx678.
-     */
-    protected function maskPhone(string $phone): string
-    {
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-
-        if (strlen($phone) <= 6) {
-            return $phone;
-        }
-
-        return substr($phone, 0, 4).str_repeat('x', strlen($phone) - 7).substr($phone, -3);
-    }
-
-    /**
-     * Decode the base64 data-URL photo and persist it under the public disk.
-     */
-    protected function storePhoto(string $dataUrl): ?string
-    {
-        $base64 = preg_replace('#^data:image/\w+;base64,#i', '', $dataUrl);
-
-        if (! $base64 || ! Str::startsWith($dataUrl, 'data:image/')) {
-            return null;
-        }
-
-        $image = base64_decode($base64, true);
-
-        if ($image === false) {
-            return null;
-        }
-
-        $filename = 'visits/'.Str::uuid().'.jpg';
-
-        if (! \Storage::disk('public')->put($filename, $image)) {
-            return null;
-        }
-
-        return $filename;
     }
 }

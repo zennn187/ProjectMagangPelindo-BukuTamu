@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreKioskVisitRequest;
 use App\Models\Blacklist;
 use App\Models\Employee;
 use App\Models\Visit;
-use App\Services\WhatsAppService;
-use Illuminate\Http\Request;
+use App\Services\PhotoService;
+use App\Support\PhoneHelper;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -17,16 +19,21 @@ class KioskController extends Controller
      */
     public function index(): View
     {
-        $employees = Employee::active()->orderBy('name')->get();
+        // Guard: jangan gantung halaman kiosk bila MySQL lambat/lock.
+        // Fallback ke daftar kosong agar form tetap bisa dibuka.
+        // (PDO MySQL 127.0.0.1 tanpa timeout bisa diam selamanya bila server macet,
+        //  jadi baca via koneksi cepat-gagal; gagal = tampilkan form tanpa dropdown.)
+        try {
+            config(['database.connections.mysql.options' => [\PDO::ATTR_TIMEOUT => 2]]);
+            DB::connection()->getPdo();
+            $employees = \Illuminate\Support\Facades\Cache::remember('employees.active', 3600, fn () => Employee::active()->orderBy('name')->get());
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Kiosk employees load failed: '.get_class($e).': '.$e->getMessage());
+            $employees = collect();
+        }
 
         // Nomor WhatsApp tujuan tombol floating (dari .env, bisa format 08xx atau 62xx).
-        $rawNumber = preg_replace('/[^0-9]/', '', (string) config('services.whatsapp.reception_number'));
-
-        // Konversi 08xx -> 628xx agar cocok untuk wa.me.
-        $plus62 = '62'.substr($rawNumber, 1);
-        $waNumber = strlen($rawNumber) >= 10 && str_starts_with($rawNumber, '0')
-            ? $plus62
-            : $rawNumber;
+        $waNumber = PhoneHelper::normalize(config('services.whatsapp.reception_number'));
 
         $waMessage = 'Halo Admin Buku Tamu Pelindo Regional 1 Dumai, saya ingin bertanya seputar kunjungan ke Pelabuhan Dumai.';
 
@@ -36,18 +43,9 @@ class KioskController extends Controller
     /**
      * Store a new visitor submission with default 'pending' status.
      */
-    public function store(Request $request, WhatsAppService $whatsApp)
+    public function store(StoreKioskVisitRequest $request, PhotoService $photos)
     {
-        $data = $request->validate([
-            'visitor_name' => ['required', 'string', 'max:255'],
-            'visitor_phone' => ['required', 'string', 'max:255'],
-            'visitor_institution' => ['required', 'string', 'max:255'],
-            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
-            'purpose' => ['required', 'string'],
-            'visit_type' => ['required', 'in:meet,deliver,meeting_invitation'],
-            'delivery_pref' => ['nullable', 'in:hand_in,leave'],
-            'photo' => ['nullable', 'string'], // base64 data URL from webcam
-        ]);
+        $data = $request->validated();
 
         // If the visitor is delivering something, the employee is optional.
         $employeeId = $data['employee_id'] ?? null;
@@ -58,11 +56,11 @@ class KioskController extends Controller
         // Persist visitor photo (base64 data URL) into the public storage.
         $photoPath = null;
         if (! empty($data['photo'])) {
-            $photoPath = $this->storePhoto($data['photo']);
+            $photoPath = $photos->store($data['photo']);
 
             if ($photoPath === null) {
                 return response()->json([
-                    'message' => 'Foto gagal disimpan. Silakan ambil foto kembali lalu coba lagi.',
+                    'message' => 'Foto gagal disimpan (maks 2MB, JPG/PNG). Silakan ambil foto kembali lalu coba lagi.',
                 ], 422);
             }
         }
@@ -80,15 +78,22 @@ class KioskController extends Controller
             'status' => Visit::STATUS_PENDING,
         ]);
 
-        $whatsApp->notifyEmployeeNewVisit($visit);
+        \App\Jobs\SendWhatsAppNotification::dispatch($visit->id, 'new-visit');
 
-        // Blacklist alert: check name and institution against the blacklist list.
-        $blacklistHit = Blacklist::query()
-            ->where(function ($q) use ($data) {
-                $q->where('name_or_institution', 'like', '%'.$data['visitor_name'].'%')
-                    ->orWhere('name_or_institution', 'like', '%'.$data['visitor_institution'].'%');
-            })
-            ->first();
+        // Blacklist alert: case-insensitive two-way match (portable SQLite/MySQL).
+        $visitorName = mb_strtolower(trim($data['visitor_name']));
+        $visitorInst = mb_strtolower(trim($data['visitor_institution']));
+        $blacklistHit = Blacklist::query()->get()->first(function ($row) use ($visitorName, $visitorInst) {
+            $needle = mb_strtolower(trim((string) $row->name_or_institution));
+
+            if ($needle === '') {
+                return false;
+            }
+
+            return str_contains($visitorName, $needle)
+                || str_contains($needle, $visitorName)
+                || str_contains($visitorInst, $needle);
+        });
 
         $message = $blacklistHit
             ? 'Kunjungan Anda telah kami terima. Mohon menunggu dan segera laporkan diri ke meja resepsionis.'
@@ -109,35 +114,5 @@ class KioskController extends Controller
         $visit = Visit::where('qr_code_token', $token)->firstOrFail();
 
         return view('kiosk.badge', compact('visit'));
-    }
-
-    /**
-     * Decode the base64 data-URL photo and persist it under storage/app/public/visits.
-     */
-    protected function storePhoto(string $dataUrl): ?string
-    {
-        // Strip the "data:image/...;base64," prefix.
-        $base64 = preg_replace('#^data:image/\w+;base64,#i', '', $dataUrl);
-
-        if (! $base64 || ! Str::startsWith($dataUrl, 'data:image/')) {
-            return null;
-        }
-
-        $image = base64_decode($base64, true);
-
-        if ($image === false) {
-            return null;
-        }
-
-        $filename = 'visits/'.Str::uuid().'.jpg';
-
-        // The visits/photos live under storage/app/public/visits/photos
-        $path = \Storage::disk('public')->put($filename, $image);
-
-        if (! $path) {
-            return null;
-        }
-
-        return $filename;
     }
 }

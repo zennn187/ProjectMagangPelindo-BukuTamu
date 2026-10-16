@@ -43,6 +43,7 @@ class VisitWhatsAppFlowTest extends TestCase
             'purpose' => 'Mengantar undangan rapat koordinasi.',
             'visit_type' => Visit::TYPE_MEETING_INVITATION,
             'photo' => 'data:image/jpeg;base64,'.base64_encode('fake-image'),
+            'consent' => '1',
         ]);
 
         $response->assertOk();

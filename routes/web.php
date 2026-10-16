@@ -15,11 +15,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [KioskController::class, 'index'])->name('kiosk');
 Route::view('/welcome', 'welcome')->name('welcome');
 Route::view('/landing', 'welcome')->name('landing');
-Route::post('/kiosk', [KioskController::class, 'store'])->name('kiosk.store');
+Route::view('/privasi', 'privacy')->name('privacy');
+Route::post('/kiosk', [KioskController::class, 'store'])->middleware('throttle:10,1')->name('kiosk.store');
 Route::get('/badge/{token}', [KioskController::class, 'badge'])->name('badge');
 
 Route::get('/gate/form', [GateController::class, 'form'])->name('gate.form');
-Route::post('/gate/form', [GateController::class, 'store'])->name('gate.store');
+Route::post('/gate/form', [GateController::class, 'store'])->middleware('throttle:10,1')->name('gate.store');
 Route::get('/gate/pass/{token}', [GateController::class, 'pass'])->name('gate.pass');
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -28,7 +29,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/visits/{visit}/photo', [VisitController::class, 'photo'])->name('visits.photo');
 
     Route::get('/gate/scanner', [GateController::class, 'scanner'])->name('gate.scanner');
-    Route::post('/gate/scanner', [GateController::class, 'scan'])->name('gate.scan');
+    Route::post('/gate/scanner', [GateController::class, 'scan'])->middleware('throttle:30,1')->name('gate.scan');
+    Route::get('/gate/chat/{visit}', [GateController::class, 'chat'])->name('gate.chat');
     Route::get('/gate-reports', [GateReportController::class, 'index'])->name('gate-reports.index');
     Route::get('/gate-reports/latest', [GateReportController::class, 'latest'])->name('gate-reports.latest');
 

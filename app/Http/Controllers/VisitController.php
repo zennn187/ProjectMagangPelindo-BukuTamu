@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Visit;
-use App\Services\WhatsAppService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -19,56 +19,52 @@ class VisitController extends Controller
      */
     public function index(Request $request): View
     {
-        $selectedDay = $request->input('day');
-        $selectedDay = $selectedDay ? Carbon::parse($selectedDay)->format('Y-m-d') : now()->toDateString();
+        $selectedDay = $request->filled('day') ? $this->safeDay($request->input('day')) : now()->toDateString();
         $search = trim((string) $request->input('search', ''));
 
-        $query = Visit::with('employee')
-            ->when($selectedDay, fn ($q) => $q->whereDate('created_at', $selectedDay))
-            ->when($search !== '', function ($q) use ($search) {
-                $q->where(function ($inner) use ($search) {
-                    $inner->where('visitor_name', 'like', "%{$search}%")
-                        ->orWhere('visitor_institution', 'like', "%{$search}%")
-                        ->orWhere('visitor_phone', 'like', "%{$search}%")
-                        ->orWhere('purpose', 'like', "%{$search}%")
-                        ->orWhereHas('employee', fn ($employeeQuery) => $employeeQuery->where('name', 'like', "%{$search}%"));
-                });
-            });
+        $query = Visit::with('employee')->forDay($selectedDay)->search($search);
 
         $visits = $query->orderBy('created_at', 'desc')->paginate(5)->appends($request->query());
 
-        $countsQuery = Visit::query()
-            ->when($selectedDay, fn ($q) => $q->whereDate('created_at', $selectedDay))
-            ->when($search !== '', function ($q) use ($search) {
-                $q->where(function ($inner) use ($search) {
-                    $inner->where('visitor_name', 'like', "%{$search}%")
-                        ->orWhere('visitor_institution', 'like', "%{$search}%")
-                        ->orWhere('visitor_phone', 'like', "%{$search}%")
-                        ->orWhere('purpose', 'like', "%{$search}%")
-                        ->orWhereHas('employee', fn ($employeeQuery) => $employeeQuery->where('name', 'like', "%{$search}%"));
-                });
-            });
-
-        $counts = [
-            'pending' => (clone $countsQuery)->where('status', Visit::STATUS_PENDING)->count(),
-            'waiting' => (clone $countsQuery)->where('status', Visit::STATUS_WAITING)->count(),
-            'active' => (clone $countsQuery)->where('status', Visit::STATUS_ACTIVE)->count(),
-            'completed' => (clone $countsQuery)->where('status', Visit::STATUS_COMPLETED)->count(),
-            'rejected' => (clone $countsQuery)->where('status', Visit::STATUS_REJECTED)->count(),
-        ];
-
-        $weekly = collect(range(6, 0))->map(function (int $i) {
-            $day = now()->subDays($i);
+        $cacheKey = 'dashboard.counts.'.md5($selectedDay.'|'.$search);
+        $counts = Cache::remember($cacheKey, 300, function () use ($selectedDay, $search) {
+            $base = Visit::query()->forDay($selectedDay)->search($search);
 
             return [
-                'label' => $day->translatedFormat('D'),
-                'total' => Visit::whereDate('created_at', $day)->count(),
-                'completed' => Visit::whereDate('created_at', $day)->where('status', Visit::STATUS_COMPLETED)->count(),
+                'pending' => (clone $base)->where('status', Visit::STATUS_PENDING)->count(),
+                'waiting' => (clone $base)->where('status', Visit::STATUS_WAITING)->count(),
+                'active' => (clone $base)->where('status', Visit::STATUS_ACTIVE)->count(),
+                'completed' => (clone $base)->where('status', Visit::STATUS_COMPLETED)->count(),
+                'rejected' => (clone $base)->where('status', Visit::STATUS_REJECTED)->count(),
             ];
         });
 
+        $weekly = Cache::remember('dashboard.weekly', 300, function () {
+            $rows = Visit::query()
+                ->selectRaw('DATE(created_at) as d, COUNT(*) as total, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed', [Visit::STATUS_COMPLETED])
+                ->where('created_at', '>=', now()->subDays(6)->startOfDay())
+                ->groupBy('d')
+                ->pluck('total', 'd');
+
+            $rowsCompleted = Visit::query()
+                ->selectRaw('DATE(created_at) as d, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed', [Visit::STATUS_COMPLETED])
+                ->where('created_at', '>=', now()->subDays(6)->startOfDay())
+                ->groupBy('d')
+                ->pluck('completed', 'd');
+
+            return collect(range(6, 0))->map(function (int $i) use ($rows, $rowsCompleted) {
+                $day = now()->subDays($i);
+
+                return [
+                    'label' => $day->translatedFormat('D'),
+                    'total' => (int) ($rows[$day->toDateString()] ?? 0),
+                    'completed' => (int) ($rowsCompleted[$day->toDateString()] ?? 0),
+                ];
+            });
+        });
+
         $recentVisits = Visit::with('employee')
-            ->when($selectedDay, fn ($q) => $q->whereDate('created_at', $selectedDay))
+            ->forDay($selectedDay)
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
@@ -93,25 +89,14 @@ class VisitController extends Controller
     {
         Gate::authorize('is-receptionist-or-admin');
 
-        $selectedDay = $request->input('day');
-        $selectedDay = $selectedDay ? Carbon::parse($selectedDay)->format('Y-m-d') : now()->toDateString();
+        $selectedDay = $request->filled('day') ? $this->safeDay($request->input('day')) : now()->toDateString();
         $search = trim((string) $request->input('search', ''));
 
-        $visits = Visit::with('employee')
-            ->when($selectedDay, fn ($q) => $q->whereDate('created_at', $selectedDay))
-            ->when($search !== '', function ($q) use ($search) {
-                $q->where(function ($inner) use ($search) {
-                    $inner->where('visitor_name', 'like', "%{$search}%")
-                        ->orWhere('visitor_institution', 'like', "%{$search}%")
-                        ->orWhere('visitor_phone', 'like', "%{$search}%")
-                        ->orWhere('purpose', 'like', "%{$search}%")
-                        ->orWhereHas('employee', fn ($employeeQuery) => $employeeQuery->where('name', 'like', "%{$search}%"));
-                });
-            })
-            ->orderBy('created_at', 'desc')
-            ->take(10)
-            ->get()
-            ->map(function (Visit $visit) {
+        $query = Visit::with('employee')->forDay($selectedDay)->search($search)->orderBy('created_at', 'desc');
+
+        $paginator = $query->paginate(5)->appends($request->query());
+
+        $visits = $paginator->getCollection()->map(function (Visit $visit) {
                 return [
                     'id' => $visit->id,
                     'qr_code_token' => $visit->qr_code_token,
@@ -141,7 +126,7 @@ class VisitController extends Controller
 
         return response()->json([
             'visits' => $visits,
-            'total' => $visits->count(),
+            'total' => $paginator->total(),
             'selected_day' => $selectedDay,
         ]);
     }
@@ -149,7 +134,7 @@ class VisitController extends Controller
     /**
      * Verify a visitor: pending|waiting -> active (Check-in).
      */
-    public function checkIn(Request $request, Visit $visit, WhatsAppService $whatsApp): RedirectResponse
+    public function checkIn(Request $request, Visit $visit): RedirectResponse
     {
         $this->authorizeVisit($visit, [Visit::STATUS_PENDING, Visit::STATUS_WAITING]);
 
@@ -158,7 +143,7 @@ class VisitController extends Controller
             'check_in_time' => now(),
         ]);
 
-        $whatsApp->notifyVisitorAccepted($visit->fresh('employee'));
+        \App\Jobs\SendWhatsAppNotification::dispatch($visit->id, 'accepted');
 
         return back()->with('success', 'Kunjungan berhasil diverifikasi (Check-in).')->with('visit_action', [
             'type' => 'check-in',
@@ -213,7 +198,7 @@ class VisitController extends Controller
      * Accept a delivery that the visitor chose to leave (titip) at the front desk.
      * The logged-in receptionist becomes the responsible receiver.
      */
-    public function acceptDelivery(Request $request, Visit $visit, WhatsAppService $whatsApp): RedirectResponse
+    public function acceptDelivery(Request $request, Visit $visit): RedirectResponse
     {
         $this->authorizeVisit($visit, [Visit::STATUS_PENDING]);
 
@@ -228,7 +213,7 @@ class VisitController extends Controller
             'check_out_time' => now(),
         ]);
 
-        $whatsApp->notifyVisitorAccepted($visit->fresh('employee'));
+        \App\Jobs\SendWhatsAppNotification::dispatch($visit->id, 'accepted');
 
         return back()->with('success', 'Surat diterima dan dititipkan ke '.auth()->user()->name);
     }
@@ -258,6 +243,19 @@ class VisitController extends Controller
 
         if (! in_array($visit->status, $expectedStatuses, true)) {
             abort(422, 'Status kunjungan tidak valid untuk aksi ini.');
+        }
+    }
+
+    protected function safeDay(?string $day): string
+    {
+        try {
+            return Carbon::createFromFormat('Y-m-d', (string) $day)->format('Y-m-d');
+        } catch (\Throwable) {
+            try {
+                return Carbon::parse((string) $day)->format('Y-m-d');
+            } catch (\Throwable) {
+                return now()->toDateString();
+            }
         }
     }
 }

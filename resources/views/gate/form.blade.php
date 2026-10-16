@@ -463,8 +463,8 @@
                         </div>
 
                         <div class="field">
-                            <label>Nomor Plat Kendaraan <span style="font-weight:400;color:var(--muted);font-size:11px;">(opsional)</span></label>
-                            <input type="text" name="plate_number" maxlength="20" placeholder="B 1234 ABC">
+                            <label>NIK (16 Digit) <span class="req">*</span></label>
+                            <input type="text" name="identity_number" required inputmode="numeric" maxlength="16" pattern="[0-9]{16}" placeholder="3174xxxxxxxxxxxx">
                         </div>
 
                         <div class="field">
@@ -491,6 +491,13 @@
                             <label>Keperluan <span class="req">*</span></label>
                             <textarea name="purpose" required maxlength="1000" placeholder="Jelaskan keperluan kunjungan Anda"></textarea>
                         </div>
+
+                        <div class="field full">
+                            <label style="display:flex;gap:8px;align-items:flex-start;font-weight:400;font-size:12.5px;color:var(--ink);cursor:pointer;">
+                                <input type="checkbox" name="consent" value="1" required style="width:auto;margin-top:3px;">
+                                <span>Saya setuju data (nama, NIK, kontak, foto) digunakan untuk pencatatan buku tamu Pelindo dan disimpan sesuai <a href="/privasi" target="_blank" style="color:var(--blue);">Kebijakan Privasi</a>. <span class="req">*</span></span>
+                            </label>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -512,7 +519,7 @@
             </div>
         </div>
 
-        <p class="foot-bottom">Buku Tamu Digital · PT. Pelindo Regional 1 Dumai</p>
+        <p class="foot-bottom">Buku Tamu Digital · PT. Pelindo Regional 1 Dumai · <a href="/privasi" style="color:var(--blue);">Kebijakan Privasi</a> · Cookie yang digunakan hanya session esensial (laravel_session, XSRF-TOKEN).</p>
     </div>
 
     <script>
@@ -593,11 +600,25 @@
         function validateForm() {
             const form = document.getElementById('gate-form');
             for (const el of form.querySelectorAll('[required]')) {
+                if (el.type === 'checkbox') {
+                    if (!el.checked) {
+                        showError('Centang persetujuan penggunaan data untuk melanjutkan.');
+                        el.focus();
+                        return false;
+                    }
+                    continue;
+                }
                 if (!el.value.trim()) {
                     showError('Lengkapi kolom wajib sebelum mendaftar.');
                     el.focus();
                     return false;
                 }
+            }
+            const nik = form.querySelector('[name="identity_number"]');
+            if (nik && !/^[0-9]{16}$/.test(nik.value.trim())) {
+                showError('NIK harus 16 digit angka.');
+                nik.focus();
+                return false;
             }
             return true;
         }

@@ -111,18 +111,42 @@ class Visit extends Model
      */
     public function whatsappUrl(string $message = ''): ?string
     {
-        if (! $this->visitor_phone) {
-            return null;
+        return \App\Support\PhoneHelper::waLink($this->visitor_phone, $message);
+    }
+
+    /**
+     * Search scope shared by dashboard index + realtime feed (avoids duplication).
+     */
+    public function scopeSearch($query, string $search)
+    {
+        $search = trim($search);
+
+        if ($search === '') {
+            return $query;
         }
 
-        $phone = preg_replace('/[^0-9]/', '', $this->visitor_phone);
+        return $query->where(function ($inner) use ($search) {
+            $inner->where('visitor_name', 'like', "%{$search}%")
+                ->orWhere('visitor_institution', 'like', "%{$search}%")
+                ->orWhere('visitor_phone', 'like', "%{$search}%")
+                ->orWhere('purpose', 'like', "%{$search}%")
+                ->orWhereHas('employee', fn ($eq) => $eq->where('name', 'like', "%{$search}%"));
+        });
+    }
 
-        // Normalise leading "0" to Indonesia country code "62".
-        if (str_starts_with($phone, '0')) {
-            $phone = '62'.substr($phone, 1);
+    public function scopeForDay($query, ?string $day, string $column = 'created_at')
+    {
+        if ($day) {
+            try {
+                $day = \Illuminate\Support\Carbon::createFromFormat('Y-m-d', $day)->format('Y-m-d');
+            } catch (\Throwable) {
+                $day = now()->toDateString();
+            }
+
+            return $query->whereDate($column, $day);
         }
 
-        return 'https://wa.me/'.$phone.($message ? '?text='.rawurlencode($message) : '');
+        return $query;
     }
 
     /**

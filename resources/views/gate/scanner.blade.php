@@ -88,13 +88,30 @@
             box.innerHTML = `
                 <div class="flex items-start gap-3">
                     <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-lg font-bold ring-1 ring-black/5">${icons[data.status] || icons.error}</span>
-                    <div>
+                    <div class="flex-1">
                         <p class="font-bold text-sm">${data.title}</p>
                         <p class="text-sm mt-1 leading-relaxed">${data.message}</p>
+                        ${data.wa_url ? `<button type="button" id="wa-send-btn" class="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">Kirim WhatsApp ke Tamu</button>` : ''}
                     </div>
                 </div>`;
             box.classList.remove('hidden');
             if (navigator.vibrate) navigator.vibrate(data.status === 'success' ? 80 : [60, 50, 60]);
+
+            // Otomatis buka chat WhatsApp tamu — nomor diambil dari form gate,
+            // jadi petugas tidak perlu memilih/mengetik nomor lagi.
+            if (data.wa_url) {
+                openWhatsApp(data.wa_url);
+                const waBtn = document.getElementById('wa-send-btn');
+                if (waBtn) waBtn.addEventListener('click', () => openWhatsApp(data.wa_url));
+            }
+        }
+
+        let waPopupBlocked = false;
+        function openWhatsApp(url) {
+            if (!url) return;
+            // Ingat percobaan terakhir; kalau popup diblokir, tombol manual tetap tersedia.
+            const win = window.open(url, 'wa_visitor_chat');
+            if (!win) waPopupBlocked = true;
         }
 
         async function submitCode(code) {

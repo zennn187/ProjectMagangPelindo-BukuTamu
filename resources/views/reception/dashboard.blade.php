@@ -102,7 +102,7 @@
     <div class="bg-white rounded-3xl overflow-hidden shadow-sm ring-1 ring-bank-light/70">
         <div class="px-5 sm:px-6 py-5 flex flex-wrap items-center justify-between gap-3">
             <h2 class="font-semibold text-bank-navy">Daftar Kunjungan</h2>
-            <span class="text-xs text-bank-gray">{{ $visits->total() }} total</span>
+            <span class="text-xs text-bank-gray"><span id="visit-total">{{ $visits->total() }}</span> total</span>
         </div>
 
         <div class="px-5 sm:px-6 pb-5">
@@ -738,13 +738,35 @@
                     });
                 };
 
-                const loadLatestVisits = async () => {
+                const loadLatestVisits = async (isBackground = false) => {
+                    // Jangan menumpuk request: lewati jika request sebelumnya belum selesai.
+                    if (loadLatestVisits.running) return;
+                    loadLatestVisits.running = true;
                     try {
-                        const response = await fetch('{{ route('dashboard.latest') }}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                        // Kirim filter aktif (search & tanggal) ke endpoint polling,
+                        // supaya hasil filter tidak tertimpa data default.
+                        const url = new URL('{{ route('dashboard.latest') }}', window.location.origin);
+                        const params = new URLSearchParams(window.location.search);
+                        const searchValue = params.get('search');
+                        const dayValue = params.get('day');
+                        if (searchValue) url.searchParams.set('search', searchValue);
+                        if (dayValue) url.searchParams.set('day', dayValue);
+                        const pageValue = params.get('page');
+                        if (pageValue) url.searchParams.set('page', pageValue);
+
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 5000);
+                        const response = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }, signal: controller.signal });
+                        clearTimeout(timeoutId);
                         if (!response.ok) return;
 
                         const data = await response.json();
                         if (!data.visits || !tableBody) return;
+
+                        const totalEl = document.getElementById('visit-total');
+                        if (totalEl && typeof data.total !== 'undefined') {
+                            totalEl.textContent = data.total;
+                        }
 
                         const currentIds = data.visits.map((visit) => String(visit.id));
                         const newVisits = data.visits.filter((visit) => !lastVisitIds.includes(String(visit.id)));
@@ -791,7 +813,9 @@
                         lastVisitIds = currentIds;
                         hasLoadedVisits = true;
                     } catch (error) {
-                        console.warn('Polling dashboard gagal:', error);
+                        if (error?.name !== 'AbortError') console.warn('Polling dashboard gagal:', error);
+                    } finally {
+                        loadLatestVisits.running = false;
                     }
                 };
 
@@ -819,7 +843,13 @@
                 });
 
                 loadLatestVisits();
-                setInterval(loadLatestVisits, 5000);
+                let pollTimer = setInterval(() => {
+                    // Hemat resource: pause polling saat tab tidak terlihat.
+                    if (document.visibilityState === 'visible') loadLatestVisits(true);
+                }, 8000);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') loadLatestVisits(true);
+                });
             });
         </script>
     @endpush
