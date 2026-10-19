@@ -4,7 +4,6 @@ use App\Http\Controllers\Admin\BlacklistController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\GateReportController;
 use App\Http\Controllers\Admin\ReportController;
-use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\GateController;
 use App\Http\Controllers\KioskController;
@@ -34,8 +33,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/gate-reports', [GateReportController::class, 'index'])->name('gate-reports.index');
     Route::get('/gate-reports/latest', [GateReportController::class, 'latest'])->name('gate-reports.latest');
 
-    Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
-
     Route::prefix('visits')->name('visits.')->group(function () {
         Route::post('/{visit}/check-in', [VisitController::class, 'checkIn'])->name('check-in');
         Route::post('/{visit}/check-out', [VisitController::class, 'checkOut'])->name('check-out');
@@ -49,7 +46,6 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::resource('employees', EmployeeController::class)->except(['show']);
     Route::resource('blacklists', BlacklistController::class)->except(['show']);
     Route::resource('users', UserController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
-    Route::resource('services', ServiceController::class)->except(['show']);
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');

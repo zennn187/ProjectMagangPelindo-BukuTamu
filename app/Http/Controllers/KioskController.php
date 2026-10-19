@@ -78,22 +78,25 @@ class KioskController extends Controller
             'status' => Visit::STATUS_PENDING,
         ]);
 
-        \App\Jobs\SendWhatsAppNotification::dispatch($visit->id, 'new-visit');
+        try {
+            \App\Jobs\SendWhatsAppNotification::dispatch($visit->id, 'new-visit');
+        } catch (\Throwable $e) {
+            // Queue DB mati/penuh jangan bikin submit tamu gagal/lama.
+            \Illuminate\Support\Facades\Log::warning('WA dispatch failed: '.$e->getMessage());
+        }
 
-        // Blacklist alert: case-insensitive two-way match (portable SQLite/MySQL).
+        // Blacklist alert: cek di SQL (LIKE dua arah), bukan load semua baris.
+        // Portable MySQL + SQLite (SQLite tidak punya CONCAT).
         $visitorName = mb_strtolower(trim($data['visitor_name']));
         $visitorInst = mb_strtolower(trim($data['visitor_institution']));
-        $blacklistHit = Blacklist::query()->get()->first(function ($row) use ($visitorName, $visitorInst) {
-            $needle = mb_strtolower(trim((string) $row->name_or_institution));
-
-            if ($needle === '') {
-                return false;
-            }
-
-            return str_contains($visitorName, $needle)
-                || str_contains($needle, $visitorName)
-                || str_contains($visitorInst, $needle);
-        });
+        $concat = DB::getDriverName() === 'sqlite'
+            ? "'%' || LOWER(name_or_institution) || '%'"
+            : 'CONCAT("%", LOWER(name_or_institution), "%")';
+        $blacklistHit = Blacklist::query()
+            ->whereRaw('LOWER(name_or_institution) LIKE ?', ['%'.$visitorName.'%'])
+            ->orWhereRaw('? LIKE '.$concat, [$visitorName])
+            ->orWhereRaw('? LIKE '.$concat, [$visitorInst])
+            ->exists();
 
         $message = $blacklistHit
             ? 'Kunjungan Anda telah kami terima. Mohon menunggu dan segera laporkan diri ke meja resepsionis.'

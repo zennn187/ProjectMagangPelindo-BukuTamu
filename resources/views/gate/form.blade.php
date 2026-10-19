@@ -85,11 +85,11 @@
         }
 
         .band .logo {
-            width: 64px; height: 64px;
+            width: 200px; height: 72px;
             border-radius: 18px;
             background: #fff;
             object-fit: contain;
-            padding: 9px;
+            padding: 10px 18px;
             margin: 0 auto 16px;
             display: block;
             box-shadow: 0 12px 28px rgba(2,6,23,.35);
@@ -400,7 +400,7 @@
 <body>
     <div class="band">
         <div class="band-inner">
-            <img src="{{ asset('images/pelindo-logo.png') }}" alt="Pelindo" class="logo">
+            <img src="{{ asset('images/logo_pelindo.png') }}" alt="Pelindo" class="logo">
             <h1>Form Kedatangan Tamu</h1>
             <p>Security Post · PT. Pelindo (Persero) Regional 1 Dumai</p>
         </div>

@@ -3,13 +3,13 @@
 namespace App\Exports;
 
 use App\Models\Visit;
-use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
-use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
-class VisitsExport implements FromCollection, WithHeadings, WithMapping
+class VisitsExport implements FromQuery, WithHeadings, WithMapping, WithChunkReading
 {
     protected ?Carbon $from;
 
@@ -23,32 +23,19 @@ class VisitsExport implements FromCollection, WithHeadings, WithMapping
 
     /**
      * Query the visits, filtering by the requested date range (all history is visible to admin).
+     * Dicicil 500 baris per chunk agar export ribuan data tidak timeout di Vercel free.
      */
-    public function collection(): \Illuminate\Support\Collection
+    public function query()
     {
         return Visit::with('employee')
             ->when($this->from, fn ($q) => $q->whereDate('created_at', '>=', $this->from->toDateString()))
             ->when($this->to, fn ($q) => $q->whereDate('created_at', '<=', $this->to->toDateString()))
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function (Visit $visit) {
-                return [
-                    'tanggal' => $visit->created_at?->format('d/m/Y H:i'),
-                    'nama' => $visit->visitor_name,
-                    'telepon' => $visit->visitor_phone,
-                    'instansi' => $visit->visitor_institution,
-                    'pegawai_tujuan' => $visit->employee?->name ?? '-',
-                    'jenis' => match ($visit->visit_type) {
-                        Visit::TYPE_DELIVER => 'Pengantaran Surat',
-                        Visit::TYPE_MEETING_INVITATION => 'Undangan Rapat / Kegiatan',
-                        default => 'Kunjungan',
-                    },
-                    'keperluan' => $visit->purpose,
-                    'status' => strtoupper($visit->status),
-                    'check_in' => $visit->check_in_time?->format('d/m/Y H:i') ?? '-',
-                    'check_out' => $visit->check_out_time?->format('d/m/Y H:i') ?? '-',
-                ];
-            });
+            ->orderBy('created_at', 'desc');
+    }
+
+    public function chunkSize(): int
+    {
+        return 500;
     }
 
     public function headings(): array
@@ -67,8 +54,23 @@ class VisitsExport implements FromCollection, WithHeadings, WithMapping
         ];
     }
 
-    public function map($row): array
+    public function map($visit): array
     {
-        return $row;
+        return [
+            $visit->created_at?->format('d/m/Y H:i'),
+            $visit->visitor_name,
+            $visit->visitor_phone,
+            $visit->visitor_institution,
+            $visit->employee?->name ?? '-',
+            match ($visit->visit_type) {
+                Visit::TYPE_DELIVER => 'Pengantaran Surat',
+                Visit::TYPE_MEETING_INVITATION => 'Undangan Rapat / Kegiatan',
+                default => 'Kunjungan',
+            },
+            $visit->purpose,
+            strtoupper($visit->status),
+            $visit->check_in_time?->format('d/m/Y H:i') ?? '-',
+            $visit->check_out_time?->format('d/m/Y H:i') ?? '-',
+        ];
     }
 }

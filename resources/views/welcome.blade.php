@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
@@ -15,8 +15,8 @@
         <header class="sticky top-0 z-40 border-b border-white/10 bg-bank-navy/85 backdrop-blur-xl">
             <nav class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3.5 md:px-8">
                 <a href="#top" class="flex items-center gap-3 min-w-0">
-                    <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/20">
-                        <img src="{{ asset('images/pelindo-logo.png') }}" alt="Logo Pelindo" class="h-8 w-8 object-contain">
+                    <span class="flex h-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white px-3 py-1.5 ring-1 ring-white/20">
+                        <img src="{{ asset('images/logo_pelindo.png') }}" alt="Logo Pelindo" class="h-8 w-24 object-contain">
                     </span>
                     <span class="leading-tight text-white">
                         <span class="block text-[10px] font-bold tracking-[0.24em] sm:text-xs">PELINDO</span>
@@ -306,7 +306,7 @@
 
                         <details class="group rounded-2xl border border-white/10 bg-white/5 p-5 open:bg-white/8">
                             <summary class="cursor-pointer list-none text-base font-semibold text-white">Apakah sistem ini cocok untuk kegiatan rapat?</summary>
-                            <p class="mt-3 text-sm leading-relaxed text-white/70">Ya. Jenis kunjungan “Undangan Rapat / Kegiatan” sudah tersedia agar proses kedatangan untuk acara resmi lebih terstruktur.</p>
+                            <p class="mt-3 text-sm leading-relaxed text-white/70">Ya. Jenis kunjungan �Undangan Rapat / Kegiatan� sudah tersedia agar proses kedatangan untuk acara resmi lebih terstruktur.</p>
                         </details>
 
                         <details class="group rounded-2xl border border-white/10 bg-white/5 p-5 open:bg-white/8">
@@ -335,8 +335,8 @@
             <div class="mx-auto grid max-w-6xl gap-10 px-5 py-10 md:grid-cols-4 md:px-8">
                 <div class="md:col-span-2">
                     <div class="flex items-center gap-3">
-                        <span class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-bank-light ring-1 ring-bank-navy/10">
-                            <img src="{{ asset('images/pelindo-logo.png') }}" alt="Logo Pelindo" class="h-8 w-8 object-contain">
+                        <span class="flex h-11 items-center justify-center overflow-hidden rounded-xl bg-white px-3 py-1.5 ring-1 ring-bank-navy/10">
+                            <img src="{{ asset('images/logo_pelindo.png') }}" alt="Logo Pelindo" class="h-8 w-24 object-contain">
                         </span>
                         <span class="leading-tight text-bank-navy">
                             <span class="block text-xs font-bold tracking-[0.22em]">PELINDO</span>
@@ -369,7 +369,7 @@
             </div>
 
             <div class="border-t border-bank-light bg-bank-bg py-4 text-center text-[11px] uppercase tracking-[0.12em] text-bank-gray">
-                © {{ date('Y') }} PT Pelabuhan Indonesia (Persero) — Regional 1 Dumai
+                � {{ date('Y') }} PT Pelabuhan Indonesia (Persero) � Regional 1 Dumai
             </div>
         </footer>
     </body>
