@@ -760,14 +760,16 @@
 
 {{-- ============ CTA + FORM (form muncul setelah tombol diklik) ============ --}}
         <div>
-        <section class="bg-bank-bg px-5 py-16 text-center">
-            <div class="mx-auto max-w-2xl rounded-[28px] border border-bank-light bg-white/90 px-6 py-8 shadow-[0_18px_45px_rgba(15,23,42,0.05)] sm:px-8 sm:py-10">
-                <span class="inline-flex items-center gap-2 rounded-full bg-bank-blue/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-bank-blue">Ready to visit</span>
-                <h2 class="mt-4 text-2xl font-bold text-bank-navy sm:text-3xl">Siap melakukan kunjungan?</h2>
-                <p class="mx-auto mt-3 max-w-md text-sm leading-relaxed text-bank-gray">
+        <section class="bg-bank-bg px-4 py-10 text-center sm:px-6 sm:py-16">
+            <div class="mx-auto w-full max-w-xl rounded-[28px] border border-bank-light bg-white/90 px-6 py-10 shadow-[0_18px_45px_rgba(15,23,42,0.05)] sm:px-10 sm:py-12">
+                <span class="inline-flex items-center gap-2 rounded-full bg-bank-blue/5 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-bank-blue">Ready to visit</span>
+                <h2 class="mt-5 text-2xl font-bold tracking-tight text-bank-navy sm:text-3xl">Siap melakukan kunjungan?</h2>
+                <p class="mx-auto mt-4 max-w-md text-sm leading-relaxed text-bank-gray sm:text-[15px]">
                     Lengkapi formulir kedatangan sekarang — prosesnya cepat, hanya beberapa langkah di layar kiosk ini.
                 </p>
-                <button type="button" @click="openForm()" class="hero-cta mt-6 inline-block rounded-xl bg-bank-blue px-8 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(29,78,216,0.28)] transition-colors hover:bg-indigo-700">Isi Formulir Kedatangan</button>
+                <div class="mt-8 pb-2">
+                    <button type="button" @click="openForm()" class="hero-cta inline-block rounded-xl bg-bank-blue px-8 py-3.5 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(29,78,216,0.28)] transition-all hover:-translate-y-0.5 hover:bg-indigo-700 sm:px-10">Isi Formulir Kedatangan</button>
+                </div>
             </div>
         </section>
 

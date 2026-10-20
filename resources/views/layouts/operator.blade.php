@@ -31,6 +31,7 @@
                     <img src="{{ asset('images/logo_pelindo.png') }}" alt="Logo Pelindo" class="h-9 w-32 object-contain object-left">
                     <div class="mt-2 pr-8">
                         <p class="text-[15px] font-bold leading-tight text-bank-navy">Buku Tamu</p>
+                        <p class="text-[11px] tracking-wide text-bank-gray">Pelindo Regional 1</p>
                     </div>
                     <button @click="open = false" class="absolute top-4 right-4 xl:hidden p-1.5 rounded-md hover:bg-bank-light" aria-label="Tutup">
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>

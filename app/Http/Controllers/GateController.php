@@ -97,7 +97,19 @@ class GateController extends Controller
             ->color(9, 26, 58)
             ->generate(route('gate.form'));
 
-        return view('gate.scanner', compact('glassQrSvg'));
+        // Kartu testing: ambil 1 kunjungan gate terakhir yang punya checkout_token,
+        // supaya petugas bisa test scan kamera tanpa buka DB/tinker.
+        $latestTestVisit = Visit::whereNotNull('checkout_token')
+            ->orderByDesc('id')
+            ->first();
+
+        $latestTestQrSvg = $latestTestVisit && $latestTestVisit->checkout_token
+            ? \SimpleSoftwareIO\QrCode\Facades\QrCode::size(140)
+                ->color(9, 26, 58)
+                ->generate($latestTestVisit->checkout_token)
+            : null;
+
+        return view('gate.scanner', compact('glassQrSvg', 'latestTestVisit', 'latestTestQrSvg'));
     }
 
     /**

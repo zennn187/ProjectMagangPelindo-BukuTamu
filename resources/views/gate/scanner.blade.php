@@ -46,6 +46,30 @@
                 </div>
             </div>
 
+            <div class="bg-amber-50 rounded-3xl p-5 sm:p-6 shadow-sm ring-1 ring-amber-200">
+                <div class="flex items-center justify-between mb-1">
+                    <h2 class="font-semibold text-bank-navy">🧪 Testing Scan</h2>
+                    <span class="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">Dev only</span>
+                </div>
+                <p class="text-xs text-bank-gray mb-4">Barcode checkout terakhir — tampilkan QR ini ke kamera HP lain untuk test. Bukan badge QR kiosk.</p>
+                @if(isset($latestTestVisit) && $latestTestVisit && isset($latestTestQrSvg) && $latestTestQrSvg)
+                    <div class="flex items-center gap-4">
+                        <div class="shrink-0 rounded-2xl bg-white p-2 ring-1 ring-amber-200">{!! $latestTestQrSvg !!}</div>
+                        <div class="text-xs text-bank-gray leading-relaxed min-w-0">
+                            <p class="font-semibold text-bank-navy truncate">{{ $latestTestVisit->visitor_name }}</p>
+                            <p>Status: <span class="font-semibold {{ $latestTestVisit->checkout_used_at ? 'text-red-600' : 'text-emerald-600' }}">{{ $latestTestVisit->checkout_used_at ? 'Sudah dipakai '.$latestTestVisit->checkout_used_at->format('H:i') : $latestTestVisit->status }}</span></p>
+                            <p>Masuk: {{ $latestTestVisit->check_in_time?->format('d/m H:i') ?? '-' }}</p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <a href="{{ route('gate.pass', $latestTestVisit->checkout_token) }}" target="_blank" class="rounded-lg bg-bank-navy px-3 py-2 text-xs font-semibold text-white hover:bg-bank-blue transition-colors">Lihat barcode terakhir</a>
+                                <button type="button" id="btn-fill-test" data-token="{{ $latestTestVisit->checkout_token }}" class="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-bank-navy ring-1 ring-amber-300 hover:bg-amber-100 transition-colors">Isi ke input manual</button>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <p class="text-xs text-bank-gray">Belum ada data tamu gate. Daftarkan 1 tamu dulu via <a href="{{ route('gate.form') }}" target="_blank" class="font-semibold text-bank-blue hover:underline">form gate</a>.</p>
+                @endif
+            </div>
+
             <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm ring-1 ring-bank-light/70">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="font-semibold text-bank-navy">Aktivitas Terakhir</h2>
@@ -97,6 +121,9 @@
             box.classList.remove('hidden');
             if (navigator.vibrate) navigator.vibrate(data.status === 'success' ? 80 : [60, 50, 60]);
 
+            // Beep sukses / gagal supaya petugas tidak perlu menatap layar terus.
+            playBeep(data.status === 'success' ? 'success' : 'error');
+
             // Otomatis buka chat WhatsApp tamu — nomor diambil dari form gate,
             // jadi petugas tidak perlu memilih/mengetik nomor lagi.
             if (data.wa_url) {
@@ -137,8 +164,38 @@
             submitCode(decodedText);
         }
 
-        document.getElementById('btn-start').addEventListener('click', async () => {
-            if (scanning) return;
+        // --- Bunyi beep via Web Audio (tanpa file eksternal) ---
+        let audioCtx = null;
+        function playBeep(type = 'success') {
+            try {
+                audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
+                const seq = type === 'success'
+                    ? [{ f: 880, t: 0, d: 0.12 }, { f: 1320, t: 0.12, d: 0.18 }]
+                    : [{ f: 320, t: 0, d: 0.2 }, { f: 220, t: 0.2, d: 0.25 }];
+                seq.forEach(({ f, t, d }) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = f;
+                    gain.gain.setValueAtTime(0.0001, now + t);
+                    gain.gain.exponentialRampToValueAtTime(0.4, now + t + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + t + d);
+                    osc.connect(gain).connect(audioCtx.destination);
+                    osc.start(now + t);
+                    osc.stop(now + t + d + 0.05);
+                });
+            } catch (e) { /* audio tidak tersedia — abaikan */ }
+        }
+
+        async function startCamera(silent = false) {
+            if (scanning) return true;
+            // AudioContext butuh gesture pengguna; siapkan di klik pertama mana pun.
+            try {
+                audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+            } catch (e) {}
             html5QrCode = new Html5Qrcode('reader', { verbose: false });
             try {
                 await html5QrCode.start(
@@ -150,17 +207,31 @@
                 scanning = true;
                 document.getElementById('btn-start').classList.add('hidden');
                 document.getElementById('btn-stop').classList.remove('hidden');
+                return true;
             } catch (err) {
-                showResult({ status: 'error', title: 'Kamera gagal dibuka', message: 'Berikan izin kamera atau gunakan input manual di bawah.' });
+                if (!silent) showResult({ status: 'error', title: 'Kamera gagal dibuka', message: 'Berikan izin kamera atau gunakan input manual di bawah.' });
+                return false;
             }
-        });
+        }
 
-        document.getElementById('btn-stop').addEventListener('click', async () => {
+        async function stopCamera() {
             if (!html5QrCode || !scanning) return;
             try { await html5QrCode.stop(); } catch (e) {}
             scanning = false;
             document.getElementById('btn-start').classList.remove('hidden');
             document.getElementById('btn-stop').classList.add('hidden');
+        }
+
+        document.getElementById('btn-start').addEventListener('click', () => startCamera(false));
+
+        document.getElementById('btn-stop').addEventListener('click', stopCamera);
+
+        // Auto-start kamera saat halaman dibuka (perlu HTTPS — sudah terpenuhi di Vercel).
+        // Kalau browser menolak autoplay tanpa gesture, tombol "Mulai Kamera" tetap tersedia.
+        window.addEventListener('load', () => { startCamera(true); });
+        // Fallback: coba lagi saat tab kembali terlihat (misal setelah balik dari tab WA).
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && !scanning) startCamera(true);
         });
 
         document.getElementById('manual-form').addEventListener('submit', (e) => {
@@ -169,6 +240,17 @@
             if (code) submitCode(code);
             document.getElementById('manual-code').value = '';
         });
+
+        // Tombol testing: isi token terakhir ke input manual + scroll ke atas.
+        const btnFillTest = document.getElementById('btn-fill-test');
+        if (btnFillTest) {
+            btnFillTest.addEventListener('click', () => {
+                const input = document.getElementById('manual-code');
+                input.value = btnFillTest.dataset.token || '';
+                input.focus();
+                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        }
     </script>
 
 @endpush
