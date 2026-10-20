@@ -18,9 +18,16 @@ class GateController extends Controller
     /**
      * Guest registration form — opened when the guest scans the QR
      * code placed on the security post glass.
+     * Tahan DB-mati: tampilkan pesan ramah, bukan HTTP 500.
      */
     public function form(): View
     {
+        try {
+            \Illuminate\Support\Facades\DB::connection()->getPdo();
+        } catch (\Throwable $e) {
+            return view('gate.unavailable');
+        }
+
         return view('gate.form');
     }
 
@@ -99,9 +106,20 @@ class GateController extends Controller
 
         // Kartu testing: ambil 1 kunjungan gate terakhir yang punya checkout_token,
         // supaya petugas bisa test scan kamera tanpa buka DB/tinker.
-        $latestTestVisit = Visit::whereNotNull('checkout_token')
-            ->orderByDesc('id')
-            ->first();
+        // Tahan DB-mati: kalau DB belum siap (mis. Vercel tanpa DB online),
+        // tampilkan scanner tanpa kartu testing, bukan HTTP 500.
+        try {
+            $latestTestVisit = Visit::whereNotNull('checkout_token')
+                ->orderByDesc('id')
+                ->first();
+        } catch (\Throwable $e) {
+            return view('gate.scanner', [
+                'glassQrSvg' => $glassQrSvg,
+                'latestTestVisit' => null,
+                'latestTestQrSvg' => null,
+                'dbDown' => true,
+            ]);
+        }
 
         $latestTestQrSvg = $latestTestVisit && $latestTestVisit->checkout_token
             ? \SimpleSoftwareIO\QrCode\Facades\QrCode::size(140)

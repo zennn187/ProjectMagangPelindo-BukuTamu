@@ -9,6 +9,11 @@
 @endpush
 
 @section('content')
+    @if(!empty($dbDown))
+        <div class="mb-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800 ring-1 ring-amber-200">
+            Database belum terhubung — hasil scan tidak bisa diproses sampai <strong>DB online</strong> diisi di Environment Variables lalu <strong>Redeploy</strong>.
+        </div>
+    @endif
     <div class="grid lg:grid-cols-5 gap-4 sm:gap-5 mb-6">
         <div class="lg:col-span-3 bg-white rounded-3xl p-5 sm:p-6 shadow-sm ring-1 ring-bank-light/70">
             <h2 class="font-semibold text-bank-navy mb-1">Scan Barcode</h2>
@@ -52,7 +57,9 @@
                     <span class="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">Dev only</span>
                 </div>
                 <p class="text-xs text-bank-gray mb-4">Barcode checkout terakhir — tampilkan QR ini ke kamera HP lain untuk test. Bukan badge QR kiosk.</p>
-                @if(isset($latestTestVisit) && $latestTestVisit && isset($latestTestQrSvg) && $latestTestQrSvg)
+                @if(!empty($dbDown))
+                    <p class="text-xs text-bank-gray">Database belum terhubung — kartu testing aktif lagi setelah DB online.</p>
+                @elseif(isset($latestTestVisit) && $latestTestVisit && isset($latestTestQrSvg) && $latestTestQrSvg)
                     <div class="flex items-center gap-4">
                         <div class="shrink-0 rounded-2xl bg-white p-2 ring-1 ring-amber-200">{!! $latestTestQrSvg !!}</div>
                         <div class="text-xs text-bank-gray leading-relaxed min-w-0">
