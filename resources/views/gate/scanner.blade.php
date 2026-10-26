@@ -51,10 +51,10 @@
                 </div>
             </div>
 
-            <div class="bg-amber-50 rounded-3xl p-5 sm:p-6 shadow-sm ring-1 ring-amber-200">
+            <div class="scanner-testing-card bg-amber-50 rounded-3xl p-5 sm:p-6 shadow-sm ring-1 ring-amber-200">
                 <div class="flex items-center justify-between mb-1">
                     <h2 class="font-semibold text-bank-navy">🧪 Testing Scan</h2>
-                    <span class="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">Dev only</span>
+                    <span class="scanner-dev-badge rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">Dev only</span>
                 </div>
                 <p class="text-xs text-bank-gray mb-4">Barcode checkout terakhir — tampilkan QR ini ke kamera HP lain untuk test. Bukan badge QR kiosk.</p>
                 @if(!empty($dbDown))

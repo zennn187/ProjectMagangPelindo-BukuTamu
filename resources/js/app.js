@@ -18,11 +18,12 @@ const createToast = ({ title, description, variant = 'default', duration = 3200 
         warning: 'toast-tone-warning',
     }[variant] || 'toast-tone-default';
 
-    toast.className = `toast-item toast-glass pointer-events-auto w-[min(360px,calc(100vw-2.5rem))] rounded-2xl border ${tone} p-4`;
+    const theme = document.documentElement.dataset.theme === 'dark' ? 'toast-theme-dark' : 'toast-theme-light';
+    toast.className = `toast-item toast-glass ${theme} pointer-events-auto w-[min(360px,calc(100vw-2.5rem))] rounded-2xl border ${tone} p-4`;
     toast.setAttribute('role', 'status');
     toast.innerHTML = `
         <div class="flex items-start gap-3">
-            <div class="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs font-bold">
+            <div class="toast-icon toast-icon-${variant} mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs font-bold">
                 ${variant === 'error' ? '!' : variant === 'success' ? '✓' : variant === 'warning' ? '!' : 'i'}
             </div>
             <div class="min-w-0 flex-1">

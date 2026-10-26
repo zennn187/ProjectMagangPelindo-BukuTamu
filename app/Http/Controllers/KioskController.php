@@ -99,8 +99,8 @@ class KioskController extends Controller
             ->exists();
 
         $message = $blacklistHit
-            ? 'Kunjungan Anda telah kami terima. Mohon menunggu dan segera laporkan diri ke meja resepsionis.'
-            : 'Terima kasih! Kunjungan Anda telah kami terima. Silakan tunggu verifikasi dari resepsionis.';
+            ? 'Kunjungan Anda berhasil dikirim. Silakan lapor ke meja resepsionis untuk proses selanjutnya.'
+            : 'Terima kasih, kunjungan Anda berhasil dikirim. Silakan menunggu verifikasi dari resepsionis.';
 
         return response()->json([
             'visit' => $visit,

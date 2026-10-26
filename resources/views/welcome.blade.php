@@ -15,8 +15,8 @@
         <header class="sticky top-0 z-40 border-b border-white/10 bg-bank-navy/85 backdrop-blur-xl">
             <nav class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3.5 md:px-8">
                 <a href="#top" class="flex items-center gap-3 min-w-0">
-                    <span class="flex h-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white px-3 py-1.5 ring-1 ring-white/20">
-                        <img src="{{ asset('images/logo_pelindo.png') }}" alt="Logo Pelindo" class="h-8 w-24 object-contain">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 ring-1 ring-white/20">
+                        <img src="{{ asset('images/logo_pelindo_aja.png') }}" alt="Logo Pelindo" class="h-full w-full object-contain">
                     </span>
                     <span class="leading-tight text-white">
                         <span class="block text-[10px] font-bold tracking-[0.24em] sm:text-xs">PELINDO</span>
@@ -335,8 +335,8 @@
             <div class="mx-auto grid max-w-6xl gap-10 px-5 py-10 md:grid-cols-4 md:px-8">
                 <div class="md:col-span-2">
                     <div class="flex items-center gap-3">
-                        <span class="flex h-11 items-center justify-center overflow-hidden rounded-xl bg-white px-3 py-1.5 ring-1 ring-bank-navy/10">
-                            <img src="{{ asset('images/logo_pelindo.png') }}" alt="Logo Pelindo" class="h-8 w-24 object-contain">
+                        <span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 ring-1 ring-bank-navy/10">
+                            <img src="{{ asset('images/logo_pelindo_aja.png') }}" alt="Logo Pelindo" class="h-full w-full object-contain">
                         </span>
                         <span class="leading-tight text-bank-navy">
                             <span class="block text-xs font-bold tracking-[0.22em]">PELINDO</span>

@@ -4,9 +4,19 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <title>Kiosk — Buku Tamu Pelindo</title>
+        <title>Kiosk: Buku Tamu Pelindo</title>
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
+        <script>
+            try {
+                const savedTheme = localStorage.getItem('bukutamu-theme');
+                if (savedTheme === 'dark' || savedTheme === 'light') {
+                    document.documentElement.dataset.theme = savedTheme;
+                }
+            } catch (error) {
+                console.warn('Preferensi tema tidak dapat dibaca.', error);
+            }
+        </script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <style>
             :root {
@@ -16,6 +26,206 @@
                 --bank-bg: #f5f7fb;
                 --bank-gray: #53627a;
                 --bank-green: #22c55e;
+            }
+
+            html[data-theme="dark"] {
+                color-scheme: dark;
+            }
+
+            [data-theme="dark"] body {
+                color: #e2e8f0;
+                background:
+                    radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 24%),
+                    radial-gradient(circle at bottom right, rgba(37,99,235,0.14), transparent 18%),
+                    #0f172a;
+            }
+
+            [data-theme="dark"] .bg-bank-bg,
+            [data-theme="dark"] [class~="to-bank-bg"] {
+                --tw-gradient-to: #0f172a var(--tw-gradient-to-position) !important;
+                background-color: #0f172a !important;
+            }
+
+            [data-theme="dark"] .bg-white,
+            [data-theme="dark"] [class~="bg-white/90"],
+            [data-theme="dark"] .soft-card {
+                background-color: #1e293b !important;
+            }
+
+            [data-theme="dark"] .logo-tile {
+                background-color: #fff !important;
+            }
+
+            [data-theme="dark"] .text-bank-navy,
+            [data-theme="dark"] .text-slate-900 {
+                color: #e2e8f0 !important;
+            }
+
+            [data-theme="dark"] .text-bank-gray,
+            [data-theme="dark"] .section-copy {
+                color: #a8b8d0 !important;
+            }
+
+            [data-theme="dark"] .border-bank-light,
+            [data-theme="dark"] .soft-card,
+            [data-theme="dark"] .arrival-form,
+            [data-theme="dark"] .visit-choice {
+                border-color: #334155 !important;
+            }
+
+            [data-theme="dark"] .bg-bank-light,
+            [data-theme="dark"] .visit-choice,
+            [data-theme="dark"] .form-input {
+                background-color: #263449 !important;
+            }
+
+            [data-theme="dark"] .form-input {
+                color: #e2e8f0 !important;
+                border-color: #475569 !important;
+            }
+
+            [data-theme="dark"] .form-input::placeholder {
+                color: #94a3b8 !important;
+            }
+
+            [data-theme="dark"] .form-input:focus,
+            [data-theme="dark"] .visit-choice:has(input:checked) {
+                background-color: #1e3a5f !important;
+            }
+
+            [data-theme="dark"] .bg-amber-50 {
+                background-color: #422d12 !important;
+                border-color: #78551b !important;
+            }
+
+            [data-theme="dark"] .text-amber-800,
+            [data-theme="dark"] .text-amber-900 {
+                color: #fcd34d !important;
+            }
+
+            [data-theme="dark"] .bg-red-50 {
+                background-color: #451a24 !important;
+                border-color: #7f1d32 !important;
+            }
+
+            [data-theme="dark"] .text-red-600,
+            [data-theme="dark"] .text-bank-red {
+                color: #fca5a5 !important;
+            }
+
+            [data-theme="dark"] .bg-violet-100 {
+                background-color: #3b2b5a !important;
+            }
+
+            [data-theme="dark"] .text-violet-600 {
+                color: #c4b5fd !important;
+            }
+
+            [data-theme="dark"] .camera-shell {
+                border-color: #475569 !important;
+                box-shadow: inset 0 0 0 5px rgba(30, 41, 59, 0.7), 0 12px 28px rgba(0, 0, 0, 0.2);
+            }
+
+            [data-theme="dark"] .arrival-form,
+            [data-theme="dark"] .success-modal-card {
+                background-color: #1e293b !important;
+                color: #e2e8f0 !important;
+            }
+
+            .page-loading-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 100;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow-y: auto;
+                padding: 1.5rem;
+                background: #f5f7fb;
+                opacity: 1;
+                visibility: visible;
+                transition: opacity 260ms ease, visibility 260ms ease;
+            }
+
+            [data-theme="dark"] .page-loading-overlay {
+                background: #0f172a;
+            }
+
+            .page-loading-overlay.is-hidden {
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+            }
+
+            .page-loading-card {
+                width: min(100%, 38rem);
+            }
+
+            .skeleton {
+                overflow: hidden;
+                position: relative;
+                border-radius: 0.75rem;
+                background: #e2e8f0;
+            }
+
+            [data-theme="dark"] .skeleton {
+                background: #263449;
+            }
+
+            .skeleton::after {
+                position: absolute;
+                inset: 0;
+                transform: translateX(-100%);
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+                animation: skeleton-shimmer 1.5s ease-in-out infinite;
+                content: "";
+            }
+
+            [data-theme="dark"] .skeleton::after {
+                background: linear-gradient(90deg, transparent, rgba(148,163,184,0.18), transparent);
+            }
+
+            .form-loading-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 70;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 1.25rem;
+                background: rgba(9, 26, 58, 0.58);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+            }
+
+            .form-loading-overlay.hidden {
+                display: none;
+            }
+
+            .form-loading-card {
+                width: min(100%, 26rem);
+                border: 1px solid rgba(148, 163, 184, 0.2);
+                border-radius: 1.5rem;
+                background: #fff;
+                padding: 1.5rem;
+                box-shadow: 0 30px 80px rgba(2, 12, 35, 0.3);
+            }
+
+            [data-theme="dark"] .form-loading-card {
+                background: #1e293b;
+                color: #e2e8f0;
+            }
+
+            [data-theme="dark"] [class~="bg-white/80"] {
+                background-color: #1e293b !important;
+            }
+
+            [data-theme="dark"] .page-loading-overlay .text-slate-500 {
+                color: #a8b8d0 !important;
+            }
+
+            @keyframes skeleton-shimmer {
+                to { transform: translateX(100%); }
             }
 
             /* Non-mirror (default): tampil apa adanya (sesuai sensor kamera). */
@@ -294,10 +504,6 @@
                     gap: 0.75rem;
                 }
 
-                .nav-shell > a:last-child {
-                    width: 100%;
-                    text-align: center;
-                }
             }
 
             .primary-btn:active,
@@ -475,18 +681,56 @@
     </head>
     <body data-lenis x-data="{
         formOpen: false,
+        darkMode: document.documentElement.dataset.theme === 'dark',
+        toggleTheme() {
+            this.darkMode = !this.darkMode;
+            const theme = this.darkMode ? 'dark' : 'light';
+            document.documentElement.dataset.theme = theme;
+            try {
+                localStorage.setItem('bukutamu-theme', theme);
+            } catch (error) {
+                console.warn('Preferensi tema tidak dapat disimpan.', error);
+            }
+        },
         openForm() {
             this.formOpen = true;
             this.$nextTick(() => setTimeout(() => document.getElementById('formulir')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80));
         }
     }" @open-form.window="openForm()" class="font-sans antialiased min-h-screen text-bank-navy relative overflow-x-hidden">
 
+        <div id="page-loading-overlay" class="page-loading-overlay" role="status" aria-live="polite" aria-label="Halaman sedang dimuat">
+            <div class="page-loading-card">
+                <div class="mb-8 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="skeleton h-11 w-11 rounded-xl"></div>
+                        <div>
+                            <div class="skeleton h-3 w-28"></div>
+                            <div class="skeleton mt-2 h-2.5 w-20"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton h-9 w-24 rounded-xl"></div>
+                </div>
+                <div class="rounded-3xl border border-slate-200/70 bg-white/80 p-6 shadow-xl sm:p-9">
+                    <div class="skeleton mx-auto h-4 w-52 rounded-full"></div>
+                    <div class="skeleton mx-auto mt-6 h-8 w-4/5"></div>
+                    <div class="skeleton mx-auto mt-3 h-6 w-3/5"></div>
+                    <div class="skeleton mx-auto mt-6 h-3 w-full"></div>
+                    <div class="skeleton mx-auto mt-2 h-3 w-11/12"></div>
+                    <div class="mt-8 flex justify-center gap-3">
+                        <div class="skeleton h-11 w-40 rounded-xl"></div>
+                        <div class="skeleton h-11 w-36 rounded-xl"></div>
+                    </div>
+                    <p class="mt-8 text-center text-xs font-medium text-slate-500">Menyiapkan halaman kunjungan...</p>
+                </div>
+            </div>
+        </div>
+
         {{-- ============ NAVBAR (over hero) ============ --}}
         <header class="relative z-40 h-0">
             <nav class="floating-glass-nav nav-shell fixed inset-x-0 top-4 mx-auto flex max-w-6xl items-center justify-between gap-3 rounded-2xl px-5 py-3.5">
                 <a href="#" class="flex items-center gap-2.5">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/25">
-                        <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7v10.5a.5.5 0 0 0 .8.4L12 15l6.2 4.9a.5.5 0 0 0 .8-.4V9a7 7 0 0 0-7-7zm0 8a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+                    <span class="logo-tile flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white p-1 ring-1 ring-white/25">
+                        <img src="{{ asset('images/logo_pelindo_aja.png') }}" alt="Logo Pelindo" class="h-full w-full object-contain">
                     </span>
                     <span class="leading-tight text-white">
                         <span class="block text-sm font-bold tracking-widest">PELINDO</span>
@@ -499,7 +743,13 @@
                     <a href="#faq" class="transition-colors hover:text-white">FAQ</a>
                     <a href="https://pelindo.id/port/pelabuhan-dumai" target="_blank" rel="noopener" class="transition-colors hover:text-white">Website Resmi</a>
                 </nav>
-                <a href="#formulir" @click.prevent="openForm()" class="nav-btn rounded-xl bg-bank-blue px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_26px_rgba(29,78,216,0.32)] transition-colors hover:bg-indigo-700">Isi Formulir</a>
+                <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+                    <button type="button" @click="toggleTheme()" :aria-label="darkMode ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'" :title="darkMode ? 'Mode terang' : 'Mode gelap'" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/25 transition-colors hover:bg-white/20">
+                        <svg x-show="!darkMode" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+                        <svg x-show="darkMode" x-cloak class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20.2 15.3A8.5 8.5 0 0 1 8.7 3.8 8.5 8.5 0 1 0 20.2 15.3Z"/></svg>
+                    </button>
+                    <a href="#formulir" @click.prevent="openForm()" class="nav-btn rounded-xl bg-bank-blue px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_26px_rgba(29,78,216,0.32)] transition-colors hover:bg-indigo-700">Isi Formulir</a>
+                </div>
             </nav>
         </header>
 
@@ -518,12 +768,12 @@
 
             <div class="relative z-10 mx-auto max-w-3xl px-5 pb-24 pt-28 text-center">
                 <div class="reveal mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs text-white/80 ring-1 ring-white/20">
-                    Kantor PT. Pelindo Regional 1 Dumai — Buku Tamu Digital
+                    Kantor PT. Pelindo Regional 1 Dumai: Buku Tamu Digital
                 </div>
                 <h1 class="reveal text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">Selamat Datang di<br class="hidden sm:block"> Pelabuhan Dumai</h1>
                 <p class="reveal mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/70 sm:text-base">
                     PT. Pelindo (Persero) Regional 1 Dumai melayani kegiatan kepelabuhanan, logistik, dan industri di wilayah Dumai, Riau.
-                    Daftarkan kunjungan Anda secara digital — resepsionis kami siap memverifikasi kehadiran Anda.
+                    Daftarkan kunjungan Anda secara digital. Resepsionis kami siap memverifikasi kehadiran Anda.
                 </p>
 
                 <div class="reveal mobile-stack mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -564,7 +814,7 @@
                     <p class="mt-2 text-[11px] leading-relaxed text-bank-gray sm:text-xs">Operasional layanan pelabuhan nonstop</p>
                 </div>
                 <div class="reveal soft-card rounded-2xl p-4" style="transition-delay: 240ms;">
-                    <p class="text-xl font-bold text-bank-navy sm:text-2xl">Dumai–Malaka</p>
+                    <p class="text-xl font-bold text-bank-navy sm:text-2xl">Dumai ke Malaka</p>
                     <p class="mt-2 text-[11px] leading-relaxed text-bank-gray sm:text-xs">Rute kapal penumpang internasional</p>
                 </div>
             </div>
@@ -575,7 +825,7 @@
                 <p class="section-kicker">Layanan</p>
                 <h2 class="section-title mt-3 text-2xl font-bold text-bank-navy sm:text-3xl">Layanan &amp; Fasilitas Pelabuhan</h2>
                 <p class="section-copy mx-auto mt-3 max-w-xl text-sm">
-                    Pelabuhan Dumai melayani kegiatan kepelabuhanan, logistik, dan industri — mendukung ekspor CPO serta konektivitas antarnegara.
+                    Pelabuhan Dumai melayani kegiatan kepelabuhanan, logistik, dan industri. Pelabuhan ini mendukung ekspor CPO serta konektivitas antarnegara.
                 </p>
 
                 <div class="mt-10 grid gap-6 sm:grid-cols-3">
@@ -614,8 +864,8 @@
                             </span>
                         </div>
                         <div class="p-5 text-left">
-                            <h3 class="font-semibold text-bank-navy">Penumpang &amp; Feri Dumai–Malaka</h3>
-                            <p class="mt-1 text-xs text-bank-gray">Terminal penumpang dengan layanan feri internasional rute Dumai–Malaka.</p>
+                            <h3 class="font-semibold text-bank-navy">Penumpang dan Feri Dumai ke Malaka</h3>
+                            <p class="mt-1 text-xs text-bank-gray">Terminal penumpang dengan layanan feri internasional dari Dumai ke Malaka.</p>
                         </div>
                     </div>
                 </div>
@@ -631,7 +881,7 @@
                         <h2 class="section-title mt-3 max-w-md text-2xl font-bold text-bank-navy sm:text-3xl">Gerbang logistik dan industri di kota Dumai.</h2>
                         <p class="section-copy mt-4 max-w-md text-sm">
                             Pelabuhan Dumai berdiri sejak 1971 dan kini menjadi salah satu pintu keluar utama ekspor CPO serta
-                            komoditas Indonesia, sekaligus melayani lintas batas Dumai–Malaka. Buku tamu digital ini menjaga
+                            komoditas Indonesia, sekaligus melayani lintas batas Dumai ke Malaka. Buku tamu digital ini menjaga
                             setiap kunjungan Anda tercatat aman dan terkendali sesuai standar keamanan pelabuhan internasional.
                         </p>
                     </div>
@@ -659,7 +909,7 @@
                         </div>
                         <div>
                             <h3 class="text-sm font-semibold text-bank-navy">Check-in Digital</h3>
-                            <p class="mt-1 text-xs leading-relaxed text-bank-gray">Formulir kedatangan dan foto wajah langsung dari kiosk — tanpa kertas.</p>
+                            <p class="mt-1 text-xs leading-relaxed text-bank-gray">Isi formulir kedatangan dan ambil foto wajah langsung di kiosk tanpa menggunakan kertas.</p>
                         </div>
                     </div>
                     <div class="reveal soft-card flex items-start gap-4 rounded-2xl p-5" style="transition-delay: 120ms;">
@@ -700,7 +950,7 @@
                             </span>
                             <div>
                                 <h3 class="text-sm font-semibold text-white">Resepsionis 24/7</h3>
-                                <p class="mt-1 max-w-xs text-xs leading-relaxed text-white/60">Kunjungan bisa didaftarkan kapan pun — pelabuhan beroperasi nonstop.</p>
+                                <p class="mt-1 max-w-xs text-xs leading-relaxed text-white/60">Kunjungan dapat didaftarkan kapan saja karena pelabuhan beroperasi sepanjang waktu.</p>
                             </div>
                         </li>
                         <li class="flex items-start gap-3">
@@ -765,7 +1015,7 @@
                 <span class="inline-flex items-center gap-2 rounded-full bg-bank-blue/5 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-bank-blue">Ready to visit</span>
                 <h2 class="mt-5 text-2xl font-bold tracking-tight text-bank-navy sm:text-3xl">Siap melakukan kunjungan?</h2>
                 <p class="mx-auto mt-4 max-w-md text-sm leading-relaxed text-bank-gray sm:text-[15px]">
-                    Lengkapi formulir kedatangan sekarang — prosesnya cepat, hanya beberapa langkah di layar kiosk ini.
+                    Lengkapi formulir kedatangan dengan cepat melalui beberapa langkah di layar kiosk ini.
                 </p>
                 <div class="mt-8 pb-2">
                     <button type="button" @click="openForm()" class="hero-cta inline-block rounded-xl bg-bank-blue px-8 py-3.5 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(29,78,216,0.28)] transition-all hover:-translate-y-0.5 hover:bg-indigo-700 sm:px-10">Isi Formulir Kedatangan</button>
@@ -777,6 +1027,21 @@
         <div id="formulir" x-show="formOpen" x-cloak class="mx-auto max-w-3xl scroll-mt-8 px-4 pb-16 pt-4">
             <form id="kiosk-form" class="arrival-form overflow-hidden rounded-3xl bg-white">
                 @csrf
+                <div id="kiosk-submit-loading" class="form-loading-overlay hidden" role="status" aria-live="polite" aria-label="Formulir sedang dikirim">
+                    <div class="form-loading-card">
+                        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-bank-blue">
+                            <span class="submit-spinner h-6 w-6" aria-hidden="true"></span>
+                        </div>
+                        <h3 class="mt-4 text-center text-base font-semibold text-bank-navy">Sedang mengirim kunjungan</h3>
+                        <p class="mt-1 text-center text-xs text-bank-gray">Mohon tunggu sebentar, data Anda sedang dicatat dengan aman.</p>
+                        <div class="mt-6 space-y-3" aria-hidden="true">
+                            <div class="skeleton h-3 w-2/5"></div>
+                            <div class="skeleton h-10 w-full rounded-xl"></div>
+                            <div class="skeleton h-3 w-1/3"></div>
+                            <div class="skeleton h-10 w-3/4 rounded-xl"></div>
+                        </div>
+                    </div>
+                </div>
                 <div class="space-y-5 px-5 py-5 sm:p-8">
                     <div class="flex items-center justify-between gap-3 border-b border-bank-light pb-4">
                         <h2 class="text-lg font-semibold text-bank-navy">Formulir Kedatangan</h2>
@@ -802,9 +1067,9 @@
                     <div>
                         <label class="block text-sm font-medium text-bank-navy mb-1">Pegawai yang Dituju</label>
                         <select name="employee_id" class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy bg-white focus:border-bank-blue focus:ring-0 focus:outline-none">
-                            <option value="">— Pilih Pegawai —</option>
+                            <option value="">Pilih Pegawai</option>
                             @foreach($employees as $employee)
-                                <option value="{{ $employee->id }}">{{ $employee->name }} — {{ $employee->department }}</option>
+                                <option value="{{ $employee->id }}">{{ $employee->name }} ({{ $employee->department }})</option>
                             @endforeach
                         </select>
                     </div>
@@ -905,45 +1170,48 @@
         </div>
         @endif
 
-        <footer class="bg-bank-navy text-white/70">
-            <div class="mx-auto grid max-w-6xl gap-10 px-5 py-12 md:grid-cols-4">
+        <footer class="border-t border-white/10 bg-[#071631] text-slate-300">
+            <div class="mx-auto grid max-w-6xl gap-9 px-5 py-12 sm:px-8 md:grid-cols-4 md:gap-10 md:py-14">
                 <div class="md:col-span-2">
                     <div class="flex items-center gap-2.5">
-                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/25">
-                            <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7v10.5a.5.5 0 0 0 .8.4L12 15l6.2 4.9a.5.5 0 0 0 .8-.4V9a7 7 0 0 0-7-7zm0 8a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+                        <span class="logo-tile flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white p-1 ring-1 ring-white/25">
+                            <img src="{{ asset('images/logo_pelindo_aja.png') }}" alt="Logo Pelindo" class="h-full w-full object-contain">
                         </span>
                         <span class="leading-tight text-white">
                             <span class="block text-sm font-bold tracking-widest">PELINDO</span>
                             <span class="block text-[10px] text-white/70">Regional 1 Dumai</span>
                         </span>
                     </div>
-                    <p class="mt-4 max-w-sm text-xs leading-relaxed text-white/60">
-                        PT. Pelabuhan Indonesia (Persero) — Regional 1 Dumai. Melayani kegiatan kepelabuhanan,
-                        logistik, dan industri di Pelabuhan Dumai, Riau, sejak 1971.
+                    <span class="mt-5 inline-flex rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-medium tracking-wide text-slate-300">
+                        Layanan Buku Tamu Digital
+                    </span>
+                    <p class="mt-4 max-w-md text-sm leading-6 text-slate-300">
+                        Pelindo Regional 1 Dumai melayani kebutuhan kepelabuhanan, logistik, dan industri di Kota Dumai.
+                        Daftarkan kunjungan Anda melalui layanan buku tamu digital.
                     </p>
                 </div>
                 <div>
-                    <h3 class="text-sm font-semibold text-white">Navigasi</h3>
-                    <ul class="mt-4 space-y-2.5 text-xs">
-                        <li><a href="#layanan" class="transition-colors hover:text-white">Layanan &amp; Fasilitas</a></li>
-                        <li><a href="#tentang" class="transition-colors hover:text-white">Tentang Pelabuhan</a></li>
-                        <li><a href="#faq" class="transition-colors hover:text-white">FAQ</a></li>
-                        <li><a href="#formulir" @click.prevent="openForm()" class="transition-colors hover:text-white">Formulir Kunjungan</a></li>
+                    <h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-white">Jelajahi</h3>
+                    <ul class="mt-4 space-y-3 text-sm text-slate-300">
+                        <li><a href="#layanan" class="transition-colors hover:text-white">Layanan dan fasilitas</a></li>
+                        <li><a href="#tentang" class="transition-colors hover:text-white">Tentang pelabuhan</a></li>
+                        <li><a href="#faq" class="transition-colors hover:text-white">Pertanyaan umum</a></li>
+                        <li><a href="#formulir" @click.prevent="openForm()" class="transition-colors hover:text-white">Formulir kunjungan</a></li>
                     </ul>
                 </div>
                 <div>
-                    <h3 class="text-sm font-semibold text-white">Kontak &amp; Tautan</h3>
-                    <ul class="mt-4 space-y-2.5 text-xs">
+                    <h3 class="text-xs font-semibold uppercase tracking-[0.16em] text-white">Informasi</h3>
+                    <ul class="mt-4 space-y-3 text-sm text-slate-300">
                         <li>Pelabuhan Dumai, Kota Dumai, Riau</li>
-                        <li><a href="https://pelindo.id/port/pelabuhan-dumai" target="_blank" rel="noopener" class="font-medium text-white underline-offset-2 transition-colors hover:underline">pelindo.id/port/pelabuhan-dumai</a></li>
-                        <li><a href="https://pelindo.id" target="_blank" rel="noopener" class="transition-colors hover:text-white">pelindo.id</a></li>
-                        <li><a href="/privasi" class="transition-colors hover:text-white">Kebijakan Privasi</a></li>
+                        <li><a href="https://pelindo.id/port/pelabuhan-dumai" target="_blank" rel="noopener" class="transition-colors hover:text-white">Profil Pelabuhan Dumai</a></li>
+                        <li><a href="https://pelindo.id" target="_blank" rel="noopener" class="transition-colors hover:text-white">Situs resmi Pelindo</a></li>
+                        <li><a href="/privasi" class="transition-colors hover:text-white">Kebijakan privasi</a></li>
                     </ul>
                 </div>
             </div>
-            <div class="border-t border-white/10 px-5 py-5 text-center text-[11px] text-white/50">
-                © {{ date('Y') }} PT. Pelabuhan Indonesia (Persero) — Regional 1 Dumai. Seluruh hak cipta dilindungi.
-                <span class="mt-1 block text-white/40">Cookie yang digunakan hanya session esensial (laravel_session, XSRF-TOKEN).</span>
+            <div class="border-t border-white/10 bg-slate-950/25 px-5 py-5 text-center text-xs leading-5 text-slate-400 sm:px-8">
+                <p>© {{ date('Y') }} PT Pelabuhan Indonesia (Persero), Regional 1 Dumai. Hak cipta dilindungi.</p>
+                <p class="mt-1 text-slate-500">Layanan kunjungan digital Pelabuhan Dumai.</p>
             </div>
         </footer>
 
@@ -978,11 +1246,30 @@
             const submitBtn = document.getElementById('submit-btn');
             const submitLabel = document.getElementById('submit-label');
             const submitSpinner = document.getElementById('submit-spinner');
+            const submitLoading = document.getElementById('kiosk-submit-loading');
             const formError = document.getElementById('form-error');
             const successModal = document.getElementById('success-modal');
             const successMsg = document.getElementById('success-msg');
             const badgeLink = document.getElementById('badge-link');
             const blacklistAlert = document.getElementById('blacklist-alert');
+            const pageLoadingOverlay = document.getElementById('page-loading-overlay');
+
+            const hidePageLoading = function () {
+                if (pageLoadingOverlay) pageLoadingOverlay.classList.add('is-hidden');
+            };
+
+            if (document.readyState === 'complete') {
+                setTimeout(hidePageLoading, 180);
+            } else {
+                window.addEventListener('load', function () {
+                    setTimeout(hidePageLoading, 180);
+                }, { once: true });
+            }
+
+            window.addEventListener('pageshow', hidePageLoading);
+            window.addEventListener('beforeunload', function () {
+                if (pageLoadingOverlay) pageLoadingOverlay.classList.remove('is-hidden');
+            });
 
             let stream = null;
             let currentFacingMode = 'user';
@@ -1001,7 +1288,7 @@
 
             async function startCamera() {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    camOff.textContent = 'Kamera tidak dapat diakses. Pastikan browser memberi izin kamera (https/localhost).';
+                    camOff.textContent = 'Browser ini belum mendukung akses kamera. Buka halaman melalui HTTPS atau localhost, atau gunakan browser yang lebih baru.';
                     camOff.classList.remove('hidden');
                     camOff.classList.add('text-red-600', 'font-medium');
                     snapBtn.disabled = true;
@@ -1020,7 +1307,7 @@
                     snapBtn.disabled = false;
                     switchCameraBtn.disabled = false;
                 } catch (e) {
-                    camOff.textContent = 'Kamera tidak dapat diakses. Pastikan browser memberi izin kamera (https/localhost).';
+                    camOff.textContent = 'Kamera belum dapat diakses. Periksa izin kamera di browser dan pastikan kamera tidak sedang digunakan aplikasi lain.';
                     camOff.classList.remove('hidden');
                     camOff.classList.add('text-red-600', 'font-medium');
                     snapBtn.disabled = true;
@@ -1068,14 +1355,16 @@
                 e.preventDefault();
                 formError.classList.add('hidden');
                 if (!photoInput.value) {
-                    formError.textContent = 'Silakan ambil foto wajah terlebih dahulu.';
+                    formError.textContent = 'Silakan ambil foto wajah sebelum mengirim formulir.';
                     formError.classList.remove('hidden');
                     return;
                 }
                 submitBtn.disabled = true;
                 submitBtn.setAttribute('aria-busy', 'true');
+                form.setAttribute('aria-busy', 'true');
                 submitLabel.textContent = 'Mengirim...';
                 submitSpinner.classList.remove('hidden');
+                submitLoading.classList.remove('hidden');
 
                 const formData = new FormData(form);
                 try {
@@ -1094,7 +1383,7 @@
                     }
 
                     window.BukuTamuToast?.show({
-                        title: 'Kunjungan terkirim',
+                        title: 'Kunjungan berhasil dikirim',
                         description: data.message,
                         variant: 'success',
                         duration: 3200,
@@ -1122,8 +1411,10 @@
                 } finally {
                     submitBtn.disabled = false;
                     submitBtn.removeAttribute('aria-busy');
+                    form.removeAttribute('aria-busy');
                     submitLabel.textContent = 'Kirim Kunjungan';
                     submitSpinner.classList.add('hidden');
+                    submitLoading.classList.add('hidden');
                 }
             });
         })();
