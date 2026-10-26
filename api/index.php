@@ -14,6 +14,11 @@ if (getenv('VERCEL') || getenv('VERCEL_ENV')) {
         'QUEUE_CONNECTION' => 'sync',
         'LOG_CHANNEL'      => 'stderr',
         'LOG_STACK'        => 'stderr',
+        'APP_CONFIG_CACHE'  => '/tmp/config.php',
+        'APP_EVENTS_CACHE'  => '/tmp/events.php',
+        'APP_PACKAGES_CACHE' => '/tmp/packages.php',
+        'APP_ROUTES_CACHE'  => '/tmp/routes.php',
+        'APP_SERVICES_CACHE' => '/tmp/services.php',
     ];
     foreach ($force as $key => $value) {
         putenv("{$key}={$value}");
