@@ -32,7 +32,7 @@ if (getenv('VERCEL') || getenv('VERCEL_ENV')) {
     }
 
     // Pastikan Laravel menulis cache/compiled view ke /tmp yang writable.
-    foreach (['/tmp/views', '/tmp/sessions'] as $dir) {
+    foreach (['/tmp/storage', '/tmp/storage/logs', '/tmp/storage/framework', '/tmp/storage/framework/views', '/tmp/storage/framework/sessions', '/tmp/views', '/tmp/sessions'] as $dir) {
         if (! is_dir($dir)) {
             @mkdir($dir, 0777, true);
         }
