@@ -18,7 +18,10 @@ return [
     |
     */
 
-    'default' => env('LOG_CHANNEL', 'stack'),
+    // env() memakai nilai fallback hanya jika variabel tidak ada. Variabel
+    // yang disetel ke string kosong tetap menghasilkan driver kosong, yang
+    // membuat Manager mencoba memanggil createDriver() tanpa nama driver.
+    'default' => env('LOG_CHANNEL') ?: 'stack',
 
     /*
     |--------------------------------------------------------------------------
@@ -54,7 +57,10 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', (string) env('LOG_STACK', 'single')),
+            'channels' => array_values(array_filter(array_map(
+                'trim',
+                explode(',', (string) (env('LOG_STACK') ?: 'single'))
+            ))),
             'ignore_exceptions' => false,
         ],
 
