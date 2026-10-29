@@ -50,21 +50,14 @@ SELECT COUNT(*) FROM users;   -- harusnya 2
 ```
 
 ## LANGKAH 4 — SSL: PENTING untuk Laravel di Vercel
-Aiven **mewajibkan SSL**. Laravel-mu (config/database.php) sudah mendukung
-`MYSQL_ATTR_SSL_CA`. Dua cara:
-
-### Cara mudah (tanpa file CA — cukup untuk testing/magang):
-Di Vercel Environment Variables, TAMBAHKAN:
+Aiven **mewajibkan SSL**. `config/database.php` mendukung `MYSQL_ATTR_SSL_CA`,
+dan file CA `database/aiven-ca.pem` sudah ada di repository. Di Vercel
+Environment Variables, isi `MYSQL_ATTR_SSL_CA` dengan path file CA pada runtime:
 ```
-MYSQL_ATTR_SSL_CA=
+MYSQL_ATTR_SSL_CA=/var/task/user/database/aiven-ca.pem
 ```
-(kosongkan — PDO tetap konek SSL tapi tanpa verifikasi CA. Aman untuk project magang.)
-
-### Cara ketat (produksi sungguhan):
-Upload `ca.pem` ke `storage/certs/aiven-ca.pem`, commit, lalu isi:
-```
-MYSQL_ATTR_SSL_CA=/var/task/storage/certs/aiven-ca.pem
-```
+Jangan kosongkan variabel ini; pastikan file CA berasal dari Aiven dan ikut
+termasuk dalam deployment.
 
 ## LANGKAH 5 — Isi Environment Variables di Vercel
 Dashboard Vercel → project → Settings → Environment Variables
@@ -78,16 +71,18 @@ DB_PORT=21354                                ← port Aiven, BUKAN 3306
 DB_DATABASE=buku_tamu
 DB_USERNAME=avnadmin
 DB_PASSWORD=(password Langkah 2)
-MYSQL_ATTR_SSL_CA=                           ← kosongkan (cara mudah)
+MYSQL_ATTR_SSL_CA=/var/task/user/database/aiven-ca.pem
 APP_URL=https://projectmagangpelindo-bukutamu.vercel.app
 APP_DEBUG=false
-APP_KEY=base64:s1gEP3Lh3suDy4n+2aG8ZkS14Cm2VGgNa/R+K1R0dLo=  ← dari .env lokalmu
+APP_KEY=(isi sebagai secret Vercel; jangan tulis di repo atau kirim lewat chat)
 SESSION_DRIVER=cookie
 CACHE_STORE=array
 QUEUE_CONNECTION=sync
 LOG_CHANNEL=stderr
 WHATSAPP_ENABLED=false
 ```
+
+**Penting:** nilai `APP_KEY` yang pernah tertulis di dokumen/repository harus dianggap sudah terekspos. Buat key baru dan simpan langsung sebagai Environment Variable rahasia di Vercel; jangan gunakan ulang key dari riwayat Git. Mengganti key akan mengeluarkan sesi login yang tersimpan.
 
 ## LANGKAH 6 — Redeploy & test realtime
 1. Vercel → tab **Deployments** → `...` di deploy terbaru → **Redeploy**.
