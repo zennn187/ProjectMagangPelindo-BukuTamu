@@ -1377,6 +1377,12 @@
                         },
                         body: formData,
                     });
+                    const contentType = res.headers.get('content-type') || '';
+                    if (!contentType.includes('application/json')) {
+                        // Hosting/proxy errors (mis. 403 HTML) bukan JSON. Hindari
+                        // menampilkan SyntaxError "Unexpected token F" ke pengunjung.
+                        throw new Error(`Server menolak permintaan (HTTP ${res.status}). Muat ulang halaman; jika berlanjut, hubungi administrator.`);
+                    }
                     const data = await res.json();
                     if (!res.ok) {
                         throw new Error(data.message || 'Terjadi kesalahan.');
