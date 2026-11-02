@@ -9,6 +9,7 @@
 // $this->createDriver() tanpa argumen.
 
 $force = [
+    'APP_DEBUG'              => 'false',
     'SESSION_DRIVER'         => 'cookie',
     'CACHE_STORE'            => 'array',
     'QUEUE_CONNECTION'       => 'sync',
