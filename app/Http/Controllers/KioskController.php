@@ -9,7 +9,9 @@ use App\Models\Visit;
 use App\Services\PhotoService;
 use App\Support\PhoneHelper;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 use Illuminate\View\View;
 
 class KioskController extends Controller
@@ -46,6 +48,8 @@ class KioskController extends Controller
     public function store(StoreKioskVisitRequest $request, PhotoService $photos)
     {
         $data = $request->validated();
+
+        try {
 
         // If the visitor is delivering something, the employee is optional.
         $employeeId = $data['employee_id'] ?? null;
@@ -107,6 +111,19 @@ class KioskController extends Controller
             'blacklisted' => (bool) $blacklistHit,
             'message' => $message,
         ]);
+        } catch (Throwable $e) {
+            $errorId = (string) Str::uuid();
+            Log::error('Kiosk submission failed', [
+                'error_id' => $errorId,
+                'exception' => $e,
+                'vercel_id' => $request->header('x-vercel-id'),
+            ]);
+
+            return response()->json([
+                'message' => 'Server gagal menyimpan formulir. Catat kode ini dan berikan kepada administrator: '.$errorId,
+                'error_id' => $errorId,
+            ], 500);
+        }
     }
 
     /**
