@@ -1374,7 +1374,10 @@
 
                 const formData = new FormData(form);
                 try {
-                    const res = await fetch('{{ route("kiosk.store") }}', {
+                    // Keep the form submission on the exact host serving this page.
+                    // An absolute URL generated from APP_URL/proxy headers can point
+                    // to another Vercel alias, which separates the CSRF session cookie.
+                    const res = await fetch('/kiosk', {
                         method: 'POST',
                         credentials: 'same-origin',
                         headers: {
