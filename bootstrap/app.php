@@ -4,7 +4,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 $app = Application::configure(basePath: dirname(__DIR__))
@@ -30,8 +29,10 @@ $app = Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            // Catat hanya indikator aman untuk mendiagnosis 419 di Vercel.
-            // Jangan pernah mencatat nilai token, cookie, atau APP_KEY.
+            $csrfDiagnostics = null;
+
+            // Sediakan hanya indikator aman untuk mendiagnosis 419 di Vercel.
+            // Jangan pernah mengirim atau mencatat nilai token, cookie, atau APP_KEY.
             if ($request->is('kiosk') && $request->isMethod('post')) {
                 $submittedToken = $request->header('X-CSRF-TOKEN')
                     ?? $request->input('_token');
@@ -39,8 +40,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
                     ? $request->session()->token()
                     : null;
 
-                Log::warning('CSRF 419 diagnostic', [
-                    'route' => 'POST /kiosk',
+                $csrfDiagnostics = [
                     'session_available' => $request->hasSession(),
                     'session_cookie_present' => $request->cookies->has((string) config('session.cookie')),
                     'submitted_token_present' => is_string($submittedToken) && $submittedToken !== '',
@@ -48,15 +48,19 @@ $app = Application::configure(basePath: dirname(__DIR__))
                     'tokens_match' => is_string($submittedToken)
                         && is_string($sessionToken)
                         && hash_equals($sessionToken, $submittedToken),
-                    'host' => $request->getHost(),
-                    'vercel_id' => $request->header('x-vercel-id'),
-                ]);
+                ];
             }
 
             if ($request->expectsJson()) {
-                return response()->json([
+                $body = [
                     'message' => 'Sesi Anda telah berakhir. Muat ulang halaman lalu coba lagi.',
-                ], 419);
+                ];
+
+                if ($csrfDiagnostics !== null) {
+                    $body['csrf_diagnostic'] = $csrfDiagnostics;
+                }
+
+                return response()->json($body, 419);
             }
 
             $previous = url()->previous(route('login'));
