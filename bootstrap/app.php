@@ -49,6 +49,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
                 $csrfDiagnostics = [
                     'session_available' => $request->hasSession(),
                     'incoming_cookie_header_present' => $rawCookieHeader !== '',
+                    'incoming_cookie_names' => array_values($rawCookieNames),
+                    'expected_session_cookie_name' => $sessionCookieName,
                     'incoming_session_cookie_present' => in_array($sessionCookieName, $rawCookieNames, true),
                     'session_cookie_readable' => $request->cookies->has($sessionCookieName),
                     'submitted_token_present' => is_string($submittedToken) && $submittedToken !== '',
