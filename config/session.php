@@ -127,10 +127,8 @@ return [
     |
     */
 
-    'cookie' => env(
-        'SESSION_COOKIE',
-        Str::slug((string) env('APP_NAME', 'laravel')).'-session'
-    ),
+    // Gunakan nama tetap saat APP_NAME kosong di environment deployment.
+    'cookie' => env('SESSION_COOKIE', 'bukutamu-session'),
 
     /*
     |--------------------------------------------------------------------------
