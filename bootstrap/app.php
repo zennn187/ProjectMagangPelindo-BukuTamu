@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Throwable;
 
 $app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -20,6 +21,23 @@ $app = Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Keep the root cause of production login failures visible in Vercel logs
+        // without logging submitted fields such as the email or password.
+        $exceptions->report(function (Throwable $exception): void {
+            $request = request();
+
+            if (! $request->isMethod('POST') || ! $request->is('login')) {
+                return;
+            }
+
+            logger()->error('Login request exception', [
+                'exception_class' => $exception::class,
+                'message' => mb_substr($exception->getMessage(), 0, 500),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+            ]);
+        });
+
         // 419 = CSRF token tidak cocok dengan session (session kedaluwarsa, cookie
         // session hilang/mati, atau halaman lama dikirim ulang). Default Laravel
         // menampilkan "Page Expired" yang buntu, jadi arahkan kembali ke halaman
