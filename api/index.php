@@ -15,6 +15,7 @@ $force = [
     'QUEUE_CONNECTION'       => 'sync',
     'LOG_CHANNEL'            => 'stderr',
     'LOG_STACK'              => 'stderr',
+    'BCRYPT_ROUNDS'           => '12',
     'APP_CONFIG_CACHE'       => '/tmp/config.php',
     'APP_EVENTS_CACHE'       => '/tmp/events.php',
     'APP_PACKAGES_CACHE'     => '/tmp/packages.php',
