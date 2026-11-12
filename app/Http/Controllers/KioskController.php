@@ -120,9 +120,22 @@ class KioskController extends Controller
         ]);
         } catch (Throwable $e) {
             $errorId = (string) Str::uuid();
+            $message = substr($e->getMessage(), 0, 500);
+
+            foreach (['visitor_name', 'visitor_phone', 'visitor_institution', 'purpose', 'photo'] as $field) {
+                $value = $request->input($field);
+
+                if (is_string($value) && $value !== '') {
+                    $message = str_replace($value, '[redacted]', $message);
+                }
+            }
+
             Log::error('Kiosk submission failed', [
                 'error_id' => $errorId,
-                'exception' => $e,
+                'exception_class' => $e::class,
+                'message' => $message,
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
                 'vercel_id' => $request->header('x-vercel-id'),
             ]);
 
