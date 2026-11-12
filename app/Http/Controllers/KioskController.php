@@ -57,33 +57,40 @@ class KioskController extends Controller
             ? ($data['delivery_pref'] ?? null)
             : null;
 
-        // Persist visitor photo (base64 data URL) into the public storage.
-        $photoPath = null;
+        $photoData = null;
         if (! empty($data['photo'])) {
-            $photoPath = $photos->store($data['photo']);
+            $photoData = $photos->process($data['photo']);
 
-            if ($photoPath === null) {
+            if ($photoData === null) {
                 return response()->json([
                     'message' => 'Foto gagal disimpan (maks 2MB, JPG/PNG). Silakan ambil foto kembali lalu coba lagi.',
                 ], 422);
             }
         }
 
-        $visit = Visit::create([
-            'visitor_name' => $data['visitor_name'],
-            'visitor_phone' => $data['visitor_phone'],
-            'visitor_institution' => $data['visitor_institution'],
-            'employee_id' => $employeeId ?? null,
-            'purpose' => $data['purpose'],
-            'visit_type' => $data['visit_type'],
-            'delivery_pref' => $deliveryPref,
-            'photo_path' => $photoPath,
-            'qr_code_token' => Str::random(32),
-            'status' => Visit::STATUS_PENDING,
-        ]);
+        $visit = DB::transaction(function () use ($data, $employeeId, $deliveryPref, $photoData) {
+            $visit = Visit::create([
+                'visitor_name' => $data['visitor_name'],
+                'visitor_phone' => $data['visitor_phone'],
+                'visitor_institution' => $data['visitor_institution'],
+                'employee_id' => $employeeId ?? null,
+                'purpose' => $data['purpose'],
+                'visit_type' => $data['visit_type'],
+                'delivery_pref' => $deliveryPref,
+                'photo_path' => null,
+                'qr_code_token' => Str::random(32),
+                'status' => Visit::STATUS_PENDING,
+            ]);
+
+            if ($photoData !== null) {
+                $visit->photo()->create($photoData);
+            }
+
+            return $visit;
+        });
 
         try {
-            \App\Jobs\SendWhatsAppNotification::dispatch($visit->id, 'new-visit');
+            \App\Jobs\SendWhatsAppNotification::dispatch($visit->id, 'new-visit')->afterResponse();
         } catch (\Throwable $e) {
             // Queue DB mati/penuh jangan bikin submit tamu gagal/lama.
             \Illuminate\Support\Facades\Log::warning('WA dispatch failed: '.$e->getMessage());

@@ -9,6 +9,7 @@ use App\Services\PhotoService;
 use App\Support\PhoneHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -40,44 +41,51 @@ class GateController extends Controller
     {
         $data = $request->validated();
 
-        $photoPath = null;
+        $photoData = null;
         if (! empty($data['photo'])) {
-            $photoPath = $photos->store($data['photo']);
+            $photoData = $photos->process($data['photo']);
 
-            if ($photoPath === null) {
+            if ($photoData === null) {
                 return response()->json([
                     'message' => 'Foto gagal disimpan (maks 2MB, JPG/PNG). Silakan ambil foto kembali lalu coba lagi.',
                 ], 422);
             }
         }
 
-        $visit = Visit::create([
-            'visitor_name' => $data['visitor_name'],
-            'visitor_phone' => $data['visitor_phone'],
-            'visitor_institution' => $data['visitor_institution'],
-            'purpose' => $data['purpose'],
-            'photo_path' => $photoPath,
-            'qr_code_token' => Str::random(32),
-            'checkout_token' => Str::random(32),
-            'status' => Visit::STATUS_ACTIVE, // guest is entering through the gate right now
-            'check_in_time' => now(),
-            'source' => Visit::SOURCE_GATE,
-            'identity_number' => $data['identity_number'],
-            'plate_number' => null, // dihentikan: gate kini memakai NIK sebagai tanda pengenal
-            'person_to_meet' => $data['person_to_meet'],
-        ]);
+        $visit = DB::transaction(function () use ($data, $photoData) {
+            $visit = Visit::create([
+                'visitor_name' => $data['visitor_name'],
+                'visitor_phone' => $data['visitor_phone'],
+                'visitor_institution' => $data['visitor_institution'],
+                'purpose' => $data['purpose'],
+                'photo_path' => null,
+                'qr_code_token' => Str::random(32),
+                'checkout_token' => Str::random(32),
+                'status' => Visit::STATUS_ACTIVE,
+                'check_in_time' => now(),
+                'source' => Visit::SOURCE_GATE,
+                'identity_number' => $data['identity_number'],
+                'plate_number' => null,
+                'person_to_meet' => $data['person_to_meet'],
+            ]);
 
-        GateLog::create([
-            'visit_id' => $visit->id,
-            'direction' => GateLog::DIRECTION_IN,
-            'token' => $visit->qr_code_token,
-        ]);
+            if ($photoData !== null) {
+                $visit->photo()->create($photoData);
+            }
 
-        // Send the one-time checkout barcode to the guest's WhatsApp (queued, non-blocking).
-        \App\Jobs\SendWhatsAppNotification::dispatch($visit->id, 'checkout-barcode');
+            GateLog::create([
+                'visit_id' => $visit->id,
+                'direction' => GateLog::DIRECTION_IN,
+                'token' => $visit->qr_code_token,
+            ]);
+
+            return $visit;
+        });
+
+        \App\Jobs\SendWhatsAppNotification::dispatch($visit->id, 'checkout-barcode')->afterResponse();
 
         return response()->json([
-            'message' => 'Pendaftaran berhasil. Barcode checkout telah dikirim ke WhatsApp Anda ('.PhoneHelper::mask($visit->visitor_phone).'). Tunjukkan barcode tersebut saat keluar.',
+            'message' => 'Pendaftaran berhasil. Barcode checkout sedang dikirim ke WhatsApp Anda ('.PhoneHelper::mask($visit->visitor_phone).'). Tunjukkan barcode tersebut saat keluar.',
             'check_in_time' => $visit->check_in_time->format('H:i'),
         ]);
     }

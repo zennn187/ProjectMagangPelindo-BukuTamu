@@ -34,6 +34,26 @@
       "dest": "/favicon.ico"
     },
     {
+      "src": "/manifest\\.webmanifest",
+      "dest": "/manifest.webmanifest"
+    },
+    {
+      "src": "/sw\\.js",
+      "dest": "/sw.js"
+    },
+    {
+      "src": "/pwa-register\\.js",
+      "dest": "/pwa-register.js"
+    },
+    {
+      "src": "/offline\\.html",
+      "dest": "/offline.html"
+    },
+    {
+      "src": "/icons/(.*)",
+      "dest": "/icons/$1"
+    },
+    {
       "src": "/build/(.*)",
       "dest": "/build/$1"
     },

@@ -210,6 +210,8 @@ const submitWithConfirmation = async (event) => {
     if (event.target instanceof HTMLFormElement) {
         const form = event.target;
 
+        if (form.dataset.asyncAction === 'true') return;
+
         if (form.dataset.exportForm === 'true') {
             submitExportForm(form);
             return;

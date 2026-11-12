@@ -2,17 +2,14 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-
 class PhotoService
 {
     /**
-     * Decode base64 data-URL photo, kompres (max 640px, JPG q70),
-     * lalu simpan di disk public. Hemat ~60-75% storage.
-     * Returns relative path or null on failure / oversize.
+     * Decode and compress a base64 data-URL photo for persistent database storage.
+     *
+     * @return array{contents: string, mime_type: string}|null
      */
-    public function store(?string $dataUrl, int $maxBytes = 3145728): ?string
+    public function process(?string $dataUrl, int $maxBytes = 3145728): ?array
     {
         if (empty($dataUrl)) {
             return null;
@@ -22,9 +19,12 @@ class PhotoService
             return null;
         }
 
-        $base64 = preg_replace('#^data:image/\w+;base64,#i', '', $dataUrl);
+        $mimeType = preg_match('#^data:(image/[\w.+-]+);base64,#i', $dataUrl, $matches)
+            ? strtolower($matches[1])
+            : null;
+        $base64 = preg_replace('#^data:image/[\w.+-]+;base64,#i', '', $dataUrl);
 
-        if (! $base64 || ! Str::startsWith($dataUrl, 'data:image/')) {
+        if (! $base64 || $mimeType === null || ! str_starts_with($mimeType, 'image/')) {
             return null;
         }
 
@@ -40,13 +40,10 @@ class PhotoService
             return null;
         }
 
-        $filename = 'visits/'.Str::uuid().'.jpg';
-
-        if (! Storage::disk('public')->put($filename, $compressed)) {
-            return null;
-        }
-
-        return $filename;
+        return [
+            'contents' => $compressed,
+            'mime_type' => $compressed === $image ? $mimeType : 'image/jpeg',
+        ];
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class Visit extends Model
@@ -155,6 +156,11 @@ class Visit extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function photo(): HasOne
+    {
+        return $this->hasOne(VisitPhoto::class);
     }
 
     /**

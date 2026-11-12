@@ -98,4 +98,12 @@ WHATSAPP_ENABLED=false
 - Bisa di-power-off otomatis bila lama tanpa aktivitas (ada email notifikasi dulu).
   Nyalakan lagi: dashboard Aiven → service → Power on. Data TIDAK hilang.
 - Max 76 koneksi — cukup untuk testing + demo magang.
-- Jangan simpan foto besar di DB (foto kamu sudah di storage — sudah benar).
+- Foto tamu dikompres (maksimum sisi 640 px) lalu disimpan sebagai BLOB pada tabel
+  `visit_photos` di database yang sama. Foto tidak ikut terbaca saat query daftar
+  dashboard dan endpoint fotonya tetap memerlukan login petugas.
+- Sebelum deploy versi aplikasi yang menyimpan foto ke tabel ini, jalankan
+  `php artisan migrate --force` dengan koneksi `.env` yang menunjuk ke database
+  Aiven. Pastikan host database benar terlebih dahulu; jangan jalankan migrasi
+  bila koneksi masih menunjuk ke database lokal atau host yang tidak dikenal.
+- Foto baru akan persisten. Foto lama yang hanya tersimpan di filesystem sementara
+  Vercel tidak dapat dipulihkan setelah file sementara tersebut hilang.

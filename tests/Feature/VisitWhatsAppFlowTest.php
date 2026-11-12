@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\Visit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class VisitWhatsAppFlowTest extends TestCase
@@ -16,7 +15,6 @@ class VisitWhatsAppFlowTest extends TestCase
 
     public function test_kiosk_submission_accepts_meeting_invitation_and_notifies_employee(): void
     {
-        Storage::fake('public');
         Http::fake([
             'https://wa.example.test/*' => Http::response(['ok' => true]),
         ]);
@@ -54,8 +52,7 @@ class VisitWhatsAppFlowTest extends TestCase
             'status' => Visit::STATUS_PENDING,
         ]);
         $visit = Visit::where('visitor_name', 'Nafisa')->firstOrFail();
-        $this->assertNotNull($visit->photo_path);
-        Storage::disk('public')->assertExists($visit->photo_path);
+        $this->assertSame('fake-image', $visit->photo()->firstOrFail()->contents);
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://wa.example.test/send'

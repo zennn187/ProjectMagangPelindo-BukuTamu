@@ -10,13 +10,6 @@
 
 @section('content')
     @php
-        $statusColor = [
-            'pending' => 'bg-amber-100 text-amber-700',
-            'waiting' => 'bg-orange-100 text-orange-700',
-            'active' => 'bg-sky-100 text-sky-700',
-            'completed' => 'bg-emerald-100 text-emerald-700',
-            'rejected' => 'bg-red-100 text-red-700',
-        ];
         $statusLabel = [
             'pending' => 'Belum Verifikasi',
             'waiting' => 'Disuruh Menunggu',
@@ -32,11 +25,11 @@
         $prefLabel = ['hand_in' => 'Diantar langsung ke yang dituju', 'leave' => 'Dititipkan ke resepsionis'];
         $maxWeekly = $weekly->max('total') ?: 1;
         $cards = [
-            ['label' => 'Menunggu Verifikasi', 'value' => $counts['pending'], 'icon' => '⏳', 'ring' => 'bg-amber-50 text-amber-600'],
-            ['label' => 'Disuruh Menunggu', 'value' => $counts['waiting'], 'icon' => '🕐', 'ring' => 'bg-orange-50 text-orange-600'],
-            ['label' => 'Di Dalam', 'value' => $counts['active'], 'icon' => '🧍', 'ring' => 'bg-sky-50 text-sky-600'],
-            ['label' => 'Selesai', 'value' => $counts['completed'], 'icon' => '✅', 'ring' => 'bg-emerald-50 text-emerald-600'],
-            ['label' => 'Ditolak', 'value' => $counts['rejected'], 'icon' => '🚫', 'ring' => 'bg-red-50 text-red-500'],
+            ['status' => 'pending', 'label' => 'Menunggu Verifikasi', 'value' => $counts['pending'], 'icon' => '⏳'],
+            ['status' => 'waiting', 'label' => 'Disuruh Menunggu', 'value' => $counts['waiting'], 'icon' => '🕐'],
+            ['status' => 'active', 'label' => 'Di Dalam', 'value' => $counts['active'], 'icon' => '🧍'],
+            ['status' => 'completed', 'label' => 'Selesai', 'value' => $counts['completed'], 'icon' => '✓'],
+            ['status' => 'rejected', 'label' => 'Ditolak', 'value' => $counts['rejected'], 'icon' => '—'],
         ];
     @endphp
 
@@ -47,9 +40,9 @@
     <div class="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-5 gap-4 sm:gap-5 mb-6">
         @foreach($cards as $card)
             <div class="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-bank-light/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                <div class="flex items-center justify-center h-11 w-11 rounded-full {{ $card['ring'] }} text-lg">{{ $card['icon'] }}</div>
+                <div class="flex items-center justify-center h-11 w-11 rounded-full bg-slate-100 text-slate-600 text-lg">{{ $card['icon'] }}</div>
                 <p class="mt-4 text-sm font-medium text-bank-gray truncate">{{ $card['label'] }}</p>
-                <p class="mt-1 text-2xl font-bold text-bank-navy">{{ $card['value'] }}</p>
+                <p id="status-count-{{ $card['status'] }}" class="mt-1 text-2xl font-bold text-bank-navy">{{ $card['value'] }}</p>
             </div>
         @endforeach
     </div>
@@ -80,7 +73,7 @@
             <ul class="space-y-4">
                 @forelse($recentVisits as $visit)
                     <li class="flex items-center gap-3">
-                        <div class="h-10 w-10 shrink-0 rounded-full grid place-items-center font-semibold uppercase {{ ['pending' => 'bg-amber-100 text-amber-600', 'waiting' => 'bg-orange-100 text-orange-600', 'active' => 'bg-emerald-100 text-emerald-600', 'completed' => 'bg-emerald-100 text-emerald-600', 'rejected' => 'bg-red-100 text-red-500'][$visit->status] ?? 'bg-bank-light text-bank-blue' }}">
+                        <div class="h-10 w-10 shrink-0 rounded-full grid place-items-center bg-slate-100 text-slate-600 font-semibold uppercase">
                             {{ strtoupper(substr($visit->visitor_name, 0, 1)) }}
                         </div>
                         <div class="min-w-0 flex-1">
@@ -89,7 +82,7 @@
                         </div>
                         <div class="text-right shrink-0">
                             <p class="text-xs text-bank-gray">{{ $visit->created_at->format('H:i') }}</p>
-                            <span class="inline-block h-2 w-2 rounded-full mt-1 {{ ['pending' => 'bg-amber-400', 'waiting' => 'bg-orange-400', 'active' => 'bg-emerald-400', 'completed' => 'bg-emerald-400', 'rejected' => 'bg-red-400'][$visit->status] ?? 'bg-bank-gray' }}"></span>
+                            <span class="inline-block h-2 w-2 rounded-full mt-1 bg-slate-400"></span>
                         </div>
                     </li>
                 @empty
@@ -141,7 +134,7 @@
                 </thead>
                 <tbody class="divide-y divide-bank-light">
                     @forelse($visits as $index => $visit)
-                        <tr class="hover:bg-bank-bg/60 align-top">
+                        <tr data-visit-id="{{ $visit->id }}" class="hover:bg-bank-bg/60 align-top">
                             <td class="px-4 py-3 text-bank-navy text-center font-medium">{{ $visits->firstItem() + $index }}</td>
                             <td class="px-4 sm:px-5 py-3">
                                 <div class="font-medium text-bank-navy">{{ $visit->visitor_name }}</div>
@@ -151,7 +144,7 @@
                             </td>
                             <td class="px-4 py-3">
                                 @php
-                                    $photoUrl = $visit->photo_path && Storage::disk('public')->exists($visit->photo_path)
+                                    $photoUrl = ($visit->photo_exists || ($visit->photo_path && Storage::disk('public')->exists($visit->photo_path)))
                                         ? route('visits.photo', ['visit' => $visit], false)
                                         : null;
                                 @endphp
@@ -174,7 +167,7 @@
                             </td>
                             <td class="px-4 py-3 text-bank-navy hidden sm:table-cell whitespace-nowrap">{{ $visit->created_at->format('H:i') }}</td>
                             <td class="px-4 py-3">
-                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $statusColor[$visit->status] ?? 'bg-bank-light text-bank-navy' }}">{{ $statusLabel[$visit->status] ?? $visit->status }}</span>
+                                <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{{ $statusLabel[$visit->status] ?? $visit->status }}</span>
                             </td>
                             <td class="px-4 py-3 text-bank-navy hidden md:table-cell max-w-[240px]">
                                 <div class="truncate" title="{{ $visit->purpose }}">{{ $visit->purpose }}</div>
@@ -185,29 +178,29 @@
                             <td class="px-4 py-3">
                                 <div class="flex flex-wrap justify-center gap-1.5">
                                     @if($visit->status === 'pending')
-                                        <form method="POST" action="{{ route('visits.check-in', $visit) }}">
+                                        <form method="POST" action="{{ route('visits.check-in', $visit) }}" data-async-action="true">
                                             @csrf
                                             <button type="submit" class="rounded-lg bg-bank-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">Check-in</button>
                                         </form>
-                                        <form method="POST" action="{{ route('visits.wait', $visit) }}" data-confirm="Minta tamu menunggu karena orang yang dituju tidak ada atau sedang cuti?" data-confirm-title="Suruh menunggu" data-confirm-action="Ya, lanjutkan" data-confirm-variant="warning">
+                                        <form method="POST" action="{{ route('visits.wait', $visit) }}" data-async-action="true" data-confirm="Minta tamu menunggu karena orang yang dituju tidak ada atau sedang cuti?" data-confirm-title="Suruh menunggu" data-confirm-action="Ya, lanjutkan" data-confirm-variant="warning">
                                             @csrf
                                             <button type="submit" class="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600">Suruh Tunggu</button>
                                         </form>
-                                        <form method="POST" action="{{ route('visits.reject', $visit) }}" data-confirm="Tolak kunjungan ini? Status tamu akan berubah menjadi ditolak." data-confirm-title="Tolak kunjungan" data-confirm-action="Ya, tolak" data-confirm-variant="danger">
+                                        <form method="POST" action="{{ route('visits.reject', $visit) }}" data-async-action="true" data-confirm="Tolak kunjungan ini? Status tamu akan berubah menjadi ditolak." data-confirm-title="Tolak kunjungan" data-confirm-action="Ya, tolak" data-confirm-variant="danger">
                                             @csrf
                                             <button type="submit" class="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-200">Tolak</button>
                                         </form>
                                     @elseif($visit->status === 'waiting')
-                                        <form method="POST" action="{{ route('visits.check-in', $visit) }}">
+                                        <form method="POST" action="{{ route('visits.check-in', $visit) }}" data-async-action="true">
                                             @csrf
                                             <button type="submit" class="rounded-lg bg-bank-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">Check-in</button>
                                         </form>
-                                        <form method="POST" action="{{ route('visits.reject', $visit) }}" data-confirm="Tolak kunjungan ini?" data-confirm-title="Tolak kunjungan" data-confirm-action="Ya, tolak" data-confirm-variant="danger">
+                                        <form method="POST" action="{{ route('visits.reject', $visit) }}" data-async-action="true" data-confirm="Tolak kunjungan ini?" data-confirm-title="Tolak kunjungan" data-confirm-action="Ya, tolak" data-confirm-variant="danger">
                                             @csrf
                                             <button type="submit" class="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-200">Tolak</button>
                                         </form>
                                     @elseif($visit->status === 'active')
-                                        <form method="POST" action="{{ route('visits.check-out', $visit) }}" data-confirm="Lakukan check-out untuk tamu ini?" data-confirm-title="Check-out" data-confirm-action="Ya, check-out" data-confirm-variant="success">
+                                        <form method="POST" action="{{ route('visits.check-out', $visit) }}" data-async-action="true" data-confirm="Lakukan check-out untuk tamu ini?" data-confirm-title="Check-out" data-confirm-action="Ya, check-out" data-confirm-variant="success">
                                             @csrf
                                             <button type="submit" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">Check-out</button>
                                         </form>
@@ -280,24 +273,24 @@
                         </div>
                         <div class="sm:col-span-2">
                             <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-bank-gray">Status saat ini</p>
-                            <p id="detail-status" class="mt-1 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">—</p>
+                            <p id="detail-status" class="mt-1 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">—</p>
                         </div>
                     </div>
 
                     <div id="detail-actions" class="mt-4 grid grid-cols-3 items-stretch gap-2 border-t border-bank-light pt-3">
-                        <form id="detail-check-in-form" method="POST" action="" class="hidden">
+                        <form id="detail-check-in-form" method="POST" action="" class="hidden" data-async-action="true">
                             @csrf
                             <button type="submit" class="flex min-h-10 w-full items-center justify-center rounded-lg bg-bank-blue px-2 py-2.5 text-xs font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-md sm:text-sm">Check-in</button>
                         </form>
-                        <form id="detail-wait-form" method="POST" action="" class="hidden" data-confirm="Minta tamu menunggu karena orang yang dituju tidak ada atau sedang cuti?" data-confirm-title="Suruh menunggu" data-confirm-action="Ya, lanjutkan" data-confirm-variant="warning">
+                        <form id="detail-wait-form" method="POST" action="" class="hidden" data-async-action="true" data-confirm="Minta tamu menunggu karena orang yang dituju tidak ada atau sedang cuti?" data-confirm-title="Suruh menunggu" data-confirm-action="Ya, lanjutkan" data-confirm-variant="warning">
                             @csrf
                             <button type="submit" class="flex min-h-10 w-full items-center justify-center rounded-lg bg-orange-500 px-2 py-2.5 text-xs font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md sm:text-sm">Suruh Tunggu</button>
                         </form>
-                        <form id="detail-reject-form" method="POST" action="" class="hidden" data-confirm="Tolak kunjungan ini? Status tamu akan berubah menjadi ditolak." data-confirm-title="Tolak kunjungan" data-confirm-action="Ya, tolak" data-confirm-variant="danger">
+                        <form id="detail-reject-form" method="POST" action="" class="hidden" data-async-action="true" data-confirm="Tolak kunjungan ini? Status tamu akan berubah menjadi ditolak." data-confirm-title="Tolak kunjungan" data-confirm-action="Ya, tolak" data-confirm-variant="danger">
                             @csrf
                             <button type="submit" class="flex min-h-10 w-full items-center justify-center rounded-lg border border-red-200 bg-red-50 px-2 py-2.5 text-xs font-bold text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-100 hover:shadow-md sm:text-sm">Tolak</button>
                         </form>
-                        <form id="detail-check-out-form" method="POST" action="" class="hidden" data-confirm="Lakukan check-out untuk tamu ini?" data-confirm-title="Check-out" data-confirm-action="Ya, check-out" data-confirm-variant="success">
+                        <form id="detail-check-out-form" method="POST" action="" class="hidden" data-async-action="true" data-confirm="Lakukan check-out untuk tamu ini?" data-confirm-title="Check-out" data-confirm-action="Ya, check-out" data-confirm-variant="success">
                             @csrf
                             <button type="submit" class="flex min-h-10 w-full items-center justify-center rounded-lg bg-emerald-600 px-2 py-2.5 text-xs font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md sm:text-sm">Check-out</button>
                         </form>
@@ -643,14 +636,6 @@
                     });
                 });
 
-                const statusColor = {
-                    pending: 'bg-amber-100 text-amber-700',
-                    waiting: 'bg-orange-100 text-orange-700',
-                    active: 'bg-sky-100 text-sky-700',
-                    completed: 'bg-emerald-100 text-emerald-700',
-                    rejected: 'bg-red-100 text-red-700',
-                };
-
                 const statusLabel = {
                     pending: 'Belum Verifikasi',
                     waiting: 'Disuruh Menunggu',
@@ -679,7 +664,7 @@
                         ? `<div>${typeLabel[visit.visit_type] ?? 'Kunjungan'}</div><div class="text-[11px] text-bank-gray mt-0.5">${prefLabel[visit.delivery_pref] ?? ''}</div>${visit.received_by_name ? '<div class="text-[11px] text-emerald-600 font-medium mt-0.5">Diterima oleh: ' + visit.received_by_name + '</div>' : ''}`
                         : `<div>${typeLabel[visit.visit_type] ?? 'Kunjungan'}</div>`;
 
-                    const statusBadge = `<span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusColor[visit.status] ?? 'bg-bank-light text-bank-navy'}">${statusLabel[visit.status] ?? visit.status}</span>`;
+                    const statusBadge = `<span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">${statusLabel[visit.status] ?? visit.status}</span>`;
 
                     const waDigits = (visit.visitor_phone || '').replace(/[^0-9]/g, '');
                     const waMessage = `Salam, kami dari PT Pelindo Regional 1 Dumai. Terkait kunjungan Anda ke ${visit.employee_name}: ${visit.status_note || 'status kunjungan Anda saat ini adalah ' + (statusLabel[visit.status] ?? visit.status) + '.'}`;
@@ -738,6 +723,83 @@
                     });
                 };
 
+                document.addEventListener('submit', async (event) => {
+                    const form = event.target;
+                    if (!(form instanceof HTMLFormElement) || form.dataset.asyncAction !== 'true') return;
+
+                    event.preventDefault();
+                    if (form.dataset.submitting === 'true') return;
+
+                    if (form.dataset.confirm && window.BukuTamuDialog) {
+                        const confirmed = await window.BukuTamuDialog.confirm({
+                            title: form.dataset.confirmTitle || 'Konfirmasi',
+                            description: form.dataset.confirm,
+                            confirmText: form.dataset.confirmAction || 'Ya, lanjutkan',
+                            variant: form.dataset.confirmVariant || 'default',
+                        });
+                        if (!confirmed) return;
+                    }
+
+                    const button = form.querySelector('button[type="submit"]');
+                    const originalText = button?.textContent;
+                    form.dataset.submitting = 'true';
+                    if (button) {
+                        button.disabled = true;
+                        button.setAttribute('aria-busy', 'true');
+                        button.textContent = 'Memproses...';
+                    }
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            body: new FormData(form),
+                        });
+                        const result = await response.json().catch(() => ({}));
+
+                        if (!response.ok) {
+                            throw new Error(result.message || `Status tamu gagal diperbarui (HTTP ${response.status}).`);
+                        }
+
+                        if (result.visit_id && result.status) {
+                            lastVisitStates.set(String(result.visit_id), result.status);
+                        }
+
+                        if (detailModal && !detailModal.classList.contains('hidden')) {
+                            detailModal.classList.add('hidden');
+                            detailModal.classList.remove('flex');
+                        }
+
+                        if (window.BukuTamuToast) {
+                            window.BukuTamuToast.show({
+                                title: 'Status diperbarui',
+                                description: result.message,
+                                variant: 'success',
+                            });
+                        }
+
+                        await loadLatestVisits(true);
+                    } catch (error) {
+                        if (window.BukuTamuToast) {
+                            window.BukuTamuToast.show({
+                                title: 'Gagal memperbarui status',
+                                description: error.message || 'Koneksi bermasalah. Periksa status tamu sebelum mengulang aksi.',
+                                variant: 'error',
+                            });
+                        }
+                    } finally {
+                        form.dataset.submitting = 'false';
+                        if (button) {
+                            button.disabled = false;
+                            button.removeAttribute('aria-busy');
+                            button.textContent = originalText;
+                        }
+                    }
+                });
+
                 const loadLatestVisits = async (isBackground = false) => {
                     // Jangan menumpuk request: lewati jika request sebelumnya belum selesai.
                     if (loadLatestVisits.running) return;
@@ -766,6 +828,12 @@
                         const totalEl = document.getElementById('visit-total');
                         if (totalEl && typeof data.total !== 'undefined') {
                             totalEl.textContent = data.total;
+                        }
+                        if (data.counts) {
+                            Object.entries(data.counts).forEach(([status, count]) => {
+                                const countElement = document.getElementById(`status-count-${status}`);
+                                if (countElement) countElement.textContent = count;
+                            });
                         }
 
                         const currentIds = data.visits.map((visit) => String(visit.id));
