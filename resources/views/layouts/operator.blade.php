@@ -83,6 +83,8 @@
                         <a href="{{ route('admin.blacklists.index') }}" class="{{ $bankMenu('Daftar Hitam', request()->routeIs('admin.blacklists*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.blacklists*')) }}"></span><span class="pl-6">Daftar Hitam</span></a>
                         <a href="{{ route('admin.users.index') }}" class="{{ $bankMenu('Pengguna', request()->routeIs('admin.users*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.users*')) }}"></span><span class="pl-6">Pengguna</span></a>
                         <a href="{{ route('admin.reports.index') }}" class="{{ $bankMenu('Laporan', request()->routeIs('admin.reports*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.reports*')) }}"></span><span class="pl-6">Laporan</span></a>
+                        <a href="{{ route('admin.status-history.index') }}" class="{{ $bankMenu('Riwayat Status', request()->routeIs('admin.status-history*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.status-history*')) }}"></span><span class="pl-6">Riwayat Status</span></a>
+                        <a href="{{ route('admin.data.index') }}" class="{{ $bankMenu('Pengelolaan Data', request()->routeIs('admin.data*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.data*')) }}"></span><span class="pl-6">Pengelolaan Data</span></a>
                     @endif
 
                     <a href="{{ route('profile.edit') }}" class="{{ $bankMenu('Setting', request()->routeIs('profile*')) }}"><span class="{{ $bankBar(request()->routeIs('profile*')) }}"></span><span class="pl-6">Setting</span></a>
@@ -104,8 +106,14 @@
                             <p class="text-sm font-semibold truncate text-bank-navy">{{ auth()->user()->name }}</p>
                             <p class="text-[11px] text-bank-gray capitalize">{{ auth()->user()->role }}</p>
                         </div>
-                        <form method="POST" action="{{ route('logout') }}">@csrf<button class="text-bank-gray hover:text-bank-red" title="Keluar"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg></button></form>
                     </div>
+                    <form method="POST" action="{{ route('logout') }}" class="mt-4">
+                        @csrf
+                        <button type="submit" class="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-bank-light px-4 py-2 text-sm font-semibold text-bank-gray hover:border-red-200 hover:bg-red-50 hover:text-bank-red focus:outline-none focus-visible:ring-2 focus-visible:ring-bank-blue" aria-label="Keluar dari akun petugas">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+                            Keluar
+                        </button>
+                    </form>
                 </div>
             </aside>
 

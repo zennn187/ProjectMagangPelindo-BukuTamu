@@ -101,9 +101,80 @@ WHATSAPP_ENABLED=false
 - Foto tamu dikompres (maksimum sisi 640 px) lalu disimpan sebagai BLOB pada tabel
   `visit_photos` di database yang sama. Foto tidak ikut terbaca saat query daftar
   dashboard dan endpoint fotonya tetap memerlukan login petugas.
-- Sebelum deploy versi aplikasi yang menyimpan foto ke tabel ini, jalankan
-  `php artisan migrate --force` dengan koneksi `.env` yang menunjuk ke database
-  Aiven. Pastikan host database benar terlebih dahulu; jangan jalankan migrasi
-  bila koneksi masih menunjuk ke database lokal atau host yang tidak dikenal.
+- Jika aplikasi production menampilkan error `visit_photos doesn't exist`, tabel
+  tersebut belum dibuat di Aiven. Migrasi foto hanya menambahkan tabel baru dan
+  tidak menghapus data kunjungan.
+- Untuk menjalankan migrasi dari komputer Windows:
+  1. Buat backup database Aiven terlebih dahulu.
+  2. Simpan nilai koneksi lokal `.env` Anda sementara di tempat aman. Jangan
+     kirim atau commit nilai-nilai ini.
+  3. Di `.env`, sementara isi `DB_CONNECTION=mysql`, `DB_HOST`, `DB_PORT`,
+     `DB_DATABASE`, `DB_USERNAME`, dan `DB_PASSWORD` dengan nilai **Production**
+     dari Vercel → Project → Settings → Environment Variables. Untuk host dan
+     port, cocokkan dengan Aiven; log production saat ini menunjukkan
+     `mysql-37bc1d-bukutamu-pelindo.b.aivencloud.com:13192`.
+  4. Untuk `MYSQL_ATTR_SSL_CA`, pakai path file CA lokal, bukan path runtime
+     Vercel. File di repo tersedia di
+     `D:\Project Magang Pelindo\BukuTamu\database\aiven-ca.pem`.
+  5. Di terminal pada folder proyek, jalankan:
+     ```powershell
+     php artisan config:clear
+     php artisan tinker --execute="dump(config('database.connections.mysql.host'), config('database.connections.mysql.port'), config('database.connections.mysql.database'));"
+     php artisan migrate:status
+     ```
+     Pastikan hasil perintah pertama menunjukkan host dan port Aiven serta
+     database `buku_tamu`.      Periksa daftar migrasi pending. Migrasi aplikasi yang
+     diharapkan saat ini adalah `2026_11_12_000001_create_visit_photos_table`,
+     `2026_11_13_000001_create_visit_status_histories_and_retention_settings`,
+     dan `2026_11_13_000002_set_default_user_role_to_receptionist`.
+     Jika ada migrasi lain yang tidak dikenal, berhenti dan periksa dahulu.
+     Jika `migrate:status` menghasilkan `SQLSTATE[HY000] [1045] Access denied`,
+     jangan jalankan migrasi. Pastikan username dan password berasal dari user
+     Aiven yang sama (bukan Service URI), perbarui password lokal/Vercel bila
+     perlu, lalu ulangi `config:clear` dan `migrate:status`. Jangan kirim password
+     ke chat atau commit ke repository.
+  6. Jalankan `php artisan migrate --force` hanya setelah target Aiven
+     terverifikasi dan migrasi pending sudah diperiksa.
+  7. Pulihkan nilai koneksi lokal `.env`, lalu jalankan
+     `php artisan config:clear` lagi. Jangan commit `.env`.
+- Setelah migrasi Aiven sukses, coba kirim formulir production sekali lagi.
 - Foto baru akan persisten. Foto lama yang hanya tersimpan di filesystem sementara
   Vercel tidak dapat dipulihkan setelah file sementara tersebut hilang.
+
+## Backup, pemulihan, dan penghapusan data
+Setelah aplikasi terbaru dideploy dan semua migrasi di atas berstatus `Ran`:
+
+1. Login sebagai admin dan buka menu **Pengelolaan Data**.
+2. Masa simpan awal untuk foto dan catatan kunjungan masing-masing 365 hari.
+   Admin dapat mengubah keduanya secara terpisah (30–3.650 hari). Mengubah
+   pengaturan tidak langsung menghapus data.
+3. Untuk backup, pilih rentang tanggal lalu klik **Unduh backup ZIP**. Arsip
+   berisi kunjungan, foto yang tersedia, log gate, dan riwayat status. Maksimum
+   1.000 kunjungan dan 4 MB per file; bagi rentang menjadi beberapa bagian bila
+   batas terlampaui. Simpan file dengan aman karena berisi data pribadi.
+4. Untuk memulihkan data yang hilang, pilih file ZIP dari fitur backup aplikasi
+   dan klik **Pulihkan backup**. Proses menggabungkan catatan yang hilang, tidak
+   menimpa catatan yang sudah ada, serta melewati duplikat. Arsip yang rusak atau
+   berasal dari format tidak dikenal akan ditolak.
+5. Untuk menghapus data yang melewati masa simpan, pastikan backup sudah
+   tersimpan, periksa jumlah data kedaluwarsa pada halaman yang sama, lalu ketik
+   `HAPUS` dan konfirmasi. Penghapusan dilakukan manual oleh admin, bukan otomatis;
+   data hanya dapat dipulihkan bila arsip backup tersedia.
+6. Untuk rekap tahunan, menu **Laporan** memiliki ekspor Excel. ZIP backup ditujukan
+   untuk pemulihan aplikasi; keduanya tidak menggantikan snapshot provider Aiven.
+
+Di Aiven, halaman service **Backups** menyediakan snapshot untuk pemulihan service
+sesuai fitur/plan Aiven. Snapshot tersebut berbeda dari arsip ZIP aplikasi dan
+umumnya dipakai melalui proses restore service Aiven, bukan sebagai file Excel
+yang bisa diunggah ke aplikasi. Sebelum migrasi atau penghapusan besar, buat
+snapshot Aiven bila tersedia dan simpan ZIP aplikasi di lokasi terpisah. Uji
+pemulihan dengan hati-hati pada salinan database, bukan dengan menimpa production.
+
+## Akun petugas dan logout pada perangkat bersama
+- Pendaftaran akun publik (`/register`) dinonaktifkan. Admin yang sudah masuk
+  dapat membuat akun admin/resepsionis melalui menu **Pengguna**.
+- Pada dashboard/operator PWA, tekan tombol **Keluar** yang ada di bagian bawah
+  sidebar setelah selesai bertugas. Tutup tab/aplikasi setelah logout. Jangan
+  mengandalkan menutup aplikasi saja karena sesi browser bisa tetap aktif.
+- Jika tombol Keluar tidak terlihat di layar HP, buka menu sidebar terlebih
+  dahulu. Form kiosk untuk tamu tetap publik dan tidak memerlukan login.

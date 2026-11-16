@@ -3,9 +3,10 @@
 namespace Tests\Feature;
 
 use App\Services\PhotoService;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use Mockery;
-use RuntimeException;
+use PDOException;
 use Tests\TestCase;
 
 class KioskSubmissionTest extends TestCase
@@ -19,15 +20,21 @@ class KioskSubmissionTest extends TestCase
         $photos = Mockery::mock(PhotoService::class);
         $photos->shouldReceive('process')
             ->once()
-            ->andThrow(new RuntimeException("Failure for {$visitorName} {$visitorPhone} {$photo}"));
+            ->andThrow(new QueryException(
+                'mysql',
+                'insert into `visit_photos` (`contents`) values (?)',
+                [$photo],
+                new PDOException("SQLSTATE[42S02]: Base table or view not found: 1146 Table 'buku_tamu.visit_photos' doesn't exist"),
+            ));
         $this->app->instance(PhotoService::class, $photos);
 
         Log::shouldReceive('error')
             ->once()
             ->with('Kiosk submission failed', Mockery::on(function (array $context) use ($visitorName, $visitorPhone, $photo): bool {
-                $this->assertSame(RuntimeException::class, $context['exception_class']);
+                $this->assertSame(QueryException::class, $context['exception_class']);
                 $this->assertArrayHasKey('error_id', $context);
-                $this->assertStringContainsString('[redacted]', $context['message']);
+                $this->assertStringContainsString('visit_photos', $context['message']);
+                $this->assertStringNotContainsString('insert into', $context['message']);
                 $this->assertStringNotContainsString($visitorName, $context['message']);
                 $this->assertStringNotContainsString($visitorPhone, $context['message']);
                 $this->assertStringNotContainsString($photo, $context['message']);

@@ -376,6 +376,16 @@
 
         .err.show { display: flex; align-items: flex-start; gap: 10px; }
 
+        .connection-status {
+            margin-bottom: 18px;
+            padding: 12px 16px;
+            border: 1.5px solid #fcd34d;
+            border-radius: 13px;
+            background: #fffbeb;
+            color: #78350f;
+            font-size: 13px;
+        }
+
         .foot-bottom { margin-top: 20px; text-align: center; font-size: 11px; color: var(--muted); }
 
         @keyframes logo-in  { from { opacity: 0; transform: translateY(-16px) scale(.85); } to { opacity: 1; transform: translateY(0) scale(1); } }
@@ -426,6 +436,7 @@
     <div class="shell">
         <div class="card">
             <div class="card-body" id="form-wrap">
+                <div id="gate-connection-status" class="connection-status" role="status" aria-live="polite" hidden></div>
                 <div class="err" id="form-error">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01" stroke-linecap="round"/></svg>
                     <span id="form-error-text"></span>
@@ -595,7 +606,8 @@
             const text = document.getElementById('form-error-text');
             text.textContent = msg;
             el.classList.add('show');
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+            el.scrollIntoView({ behavior, block: 'center' });
         }
 
         function validateForm() {
@@ -624,9 +636,27 @@
             return true;
         }
 
+        const connectionStatus = document.getElementById('gate-connection-status');
+        function updateConnectionStatus() {
+            if (!navigator.onLine) {
+                connectionStatus.textContent = 'Koneksi internet terputus. Formulir belum terkirim; periksa koneksi sebelum mencoba lagi.';
+                connectionStatus.hidden = false;
+            } else {
+                connectionStatus.hidden = true;
+            }
+        }
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        updateConnectionStatus();
+
         async function submitForm() {
             document.getElementById('form-error').classList.remove('show');
             if (!validateForm()) return;
+            if (!navigator.onLine) {
+                updateConnectionStatus();
+                showError('Koneksi internet terputus. Formulir belum terkirim; periksa koneksi sebelum mencoba lagi.');
+                return;
+            }
 
             const form    = document.getElementById('gate-form');
             const btn     = document.getElementById('btn-submit');
@@ -650,7 +680,12 @@
                 const data = await res.json();
                 if (!res.ok) {
                     setStep(false);
-                    showError(data.message || (data.errors ? Object.values(data.errors).flat().join(' ') : 'Terjadi kesalahan. Periksa kembali data Anda.'));
+                    const message = data.message || (data.errors ? Object.values(data.errors).flat().join(' ') : 'Terjadi kesalahan. Periksa kembali data Anda.');
+                    if (res.status >= 500) {
+                        connectionStatus.textContent = 'Server/database tidak tersedia atau status penyimpanan belum dapat dipastikan. Periksa status kepada petugas sebelum mengulang.';
+                        connectionStatus.hidden = false;
+                    }
+                    showError(res.status >= 500 ? `${message} Minta petugas memastikan status sebelum mengulang.` : message);
                     return;
                 }
                 stopStream();
@@ -663,7 +698,13 @@
                 document.getElementById('dot-2').textContent = '✓';
             } catch {
                 setStep(false);
-                showError('Tidak dapat terhubung ke server. Periksa koneksi internet Anda.');
+                if (!navigator.onLine) {
+                    updateConnectionStatus();
+                } else {
+                    connectionStatus.textContent = 'Server/database tidak merespons. Status pendaftaran belum dapat dipastikan; minta petugas memeriksa sebelum mencoba lagi.';
+                    connectionStatus.hidden = false;
+                }
+                showError('Tidak dapat memastikan pengiriman ke server. Jangan kirim berulang; minta petugas memastikan status pendaftaran.');
             } finally {
                 btn.disabled = false;
                 btn.classList.remove('loading');
@@ -683,7 +724,8 @@
             document.getElementById('form-wrap').style.display  = '';
             document.querySelector('.card-foot').style.display   = '';
             document.getElementById('result').classList.remove('show');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+            window.scrollTo({ top: 0, behavior });
         }
     </script>
 </body>

@@ -6,6 +6,7 @@ use App\Http\Requests\StoreGateVisitRequest;
 use App\Models\GateLog;
 use App\Models\Visit;
 use App\Services\PhotoService;
+use App\Services\VisitStatusService;
 use App\Support\PhoneHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -72,6 +73,8 @@ class GateController extends Controller
             if ($photoData !== null) {
                 $visit->photo()->create($photoData);
             }
+
+            app(VisitStatusService::class)->recordInitial($visit, 'gate-registration');
 
             GateLog::create([
                 'visit_id' => $visit->id,
@@ -195,17 +198,23 @@ class GateController extends Controller
             ], 422);
         }
 
-        $visit->update([
-            'status' => Visit::STATUS_COMPLETED,
-            'check_out_time' => now(),
-            'checkout_used_at' => now(),
-        ]);
+        $visit = DB::transaction(function () use ($visit, $code) {
+            $updatedVisit = app(VisitStatusService::class)->transition(
+                $visit,
+                [Visit::STATUS_ACTIVE],
+                Visit::STATUS_COMPLETED,
+                'gate-check-out',
+                ['check_out_time' => now(), 'checkout_used_at' => now()],
+            );
 
-        GateLog::create([
-            'visit_id' => $visit->id,
-            'direction' => GateLog::DIRECTION_OUT,
-            'token' => $code,
-        ]);
+            GateLog::create([
+                'visit_id' => $updatedVisit->id,
+                'direction' => GateLog::DIRECTION_OUT,
+                'token' => $code,
+            ]);
+
+            return $updatedVisit;
+        });
 
         return response()->json([
             'status' => 'success',
@@ -242,16 +251,23 @@ class GateController extends Controller
             ], 422);
         }
 
-        $visit->update([
-            'status' => Visit::STATUS_ACTIVE,
-            'check_in_time' => now(),
-        ]);
+        $visit = DB::transaction(function () use ($visit, $code) {
+            $updatedVisit = app(VisitStatusService::class)->transition(
+                $visit,
+                [Visit::STATUS_PENDING, Visit::STATUS_WAITING],
+                Visit::STATUS_ACTIVE,
+                'gate-check-in',
+                ['check_in_time' => now()],
+            );
 
-        GateLog::create([
-            'visit_id' => $visit->id,
-            'direction' => GateLog::DIRECTION_IN,
-            'token' => $code,
-        ]);
+            GateLog::create([
+                'visit_id' => $updatedVisit->id,
+                'direction' => GateLog::DIRECTION_IN,
+                'token' => $code,
+            ]);
+
+            return $updatedVisit;
+        });
 
         return response()->json([
             'status' => 'success',

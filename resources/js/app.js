@@ -21,25 +21,37 @@ const createToast = ({ title, description, variant = 'default', duration = 3200 
     const theme = document.documentElement.dataset.theme === 'dark' ? 'toast-theme-dark' : 'toast-theme-light';
     toast.className = `toast-item toast-glass ${theme} pointer-events-auto w-[min(360px,calc(100vw-2.5rem))] rounded-2xl border ${tone} p-4`;
     toast.setAttribute('role', 'status');
-    toast.innerHTML = `
-        <div class="flex items-start gap-3">
-            <div class="toast-icon toast-icon-${variant} mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs font-bold">
-                ${variant === 'error' ? '!' : variant === 'success' ? '✓' : variant === 'warning' ? '!' : 'i'}
-            </div>
-            <div class="min-w-0 flex-1">
-                <div class="text-sm font-semibold leading-5">${title}</div>
-                ${description ? `<div class="mt-1 text-xs opacity-80 leading-5">${description}</div>` : ''}
-            </div>
-            <button type="button" class="toast-close ml-2 rounded-md p-1 text-slate-300 transition hover:bg-white/5 hover:text-white" aria-label="Tutup notifikasi">✕</button>
-        </div>
-    `;
+    const content = document.createElement('div');
+    content.className = 'flex items-start gap-3';
+    const icon = document.createElement('div');
+    icon.className = `toast-icon toast-icon-${variant} mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs font-bold`;
+    icon.textContent = variant === 'error' ? '!' : variant === 'success' ? '✓' : variant === 'warning' ? '!' : 'i';
+    const text = document.createElement('div');
+    text.className = 'min-w-0 flex-1';
+    const heading = document.createElement('div');
+    heading.className = 'text-sm font-semibold leading-5';
+    heading.textContent = title;
+    text.appendChild(heading);
+    if (description) {
+        const detail = document.createElement('div');
+        detail.className = 'mt-1 text-xs opacity-80 leading-5';
+        detail.textContent = description;
+        text.appendChild(detail);
+    }
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'toast-close ml-2 rounded-md p-1 text-slate-300 transition hover:bg-white/5 hover:text-white';
+    closeButton.setAttribute('aria-label', 'Tutup notifikasi');
+    closeButton.textContent = '✕';
+    content.append(icon, text, closeButton);
+    toast.appendChild(content);
 
     const close = () => {
         toast.classList.add('opacity-0', 'translate-x-2');
         setTimeout(() => toast.remove(), 180);
     };
 
-    toast.querySelector('.toast-close').addEventListener('click', close);
+    closeButton.addEventListener('click', close);
     container.appendChild(toast);
     setTimeout(close, duration);
 };
@@ -121,7 +133,7 @@ window.addEventListener('toast:show', (event) => {
 });
 
 /* Lenis — smooth scrolling (hanya untuk halaman yang mengaktifkan, mis. kiosk). */
-if (document.body.hasAttribute('data-lenis')) {
+if (document.body.hasAttribute('data-lenis') && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const lenis = new Lenis({
         autoRaf: true,
         duration: 0.9,
@@ -213,9 +225,12 @@ const submitWithConfirmation = async (event) => {
         if (form.dataset.asyncAction === 'true') return;
 
         if (form.dataset.exportForm === 'true') {
+            if (form.target === '_blank') return;
             submitExportForm(form);
             return;
         }
+
+        if (form.target === '_blank') return;
 
         if (form.dataset.confirm) {
             event.preventDefault();

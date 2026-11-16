@@ -31,9 +31,9 @@
         <h2>3. Dasar persetujuan</h2>
         <p>Dengan mencentang persetujuan pada formulir, Anda menyetujui pemrosesan data sesuai UU Pelindungan Data Pribadi (UU No. 27/2022). Anda dapat menarik persetujuan dengan menghubungi resepsionis.</p>
         <h2>4. Penyimpanan &amp; retensi</h2>
-        <p>Data tersimpan di database MySQL internal. Foto kunjungan dihapus berkala (maksimal 1 tahun). Backup hanya untuk keperluan operasional.</p>
+        <p>Data tersimpan di database MySQL yang digunakan layanan. Masa simpan catatan kunjungan adalah <strong>{{ $retention ? $retention->visit_retention_days.' hari' : 'sesuai pengaturan admin' }}</strong>; foto disimpan selama <strong>{{ $retention ? $retention->photo_retention_days.' hari' : 'sesuai pengaturan admin' }}</strong>. Data kedaluwarsa dihapus oleh admin setelah meninjau dan mengunduh backup; tidak ada penghapusan otomatis.</p>
         <h2>5. Berbagi data</h2>
-        <p>Data tidak dijual. Notifikasi WhatsApp dikirim via penyedia API WA resmi yang Anda daftarkan. Link checkout berisi token acak sekali pakai.</p>
+        <p>Data tidak dijual. Foto dapat dilihat oleh petugas resepsionis/security yang berwenang dan admin; admin dapat mengunduh arsip untuk pemulihan atau laporan internal. Notifikasi WhatsApp dikirim via penyedia API WA yang dikonfigurasi. Link checkout berisi token acak sekali pakai.</p>
         <h2>6. Hak Anda</h2>
         <p>Anda berhak meminta akses, koreksi, dan penghapusan data dengan menunjukkan NIK &amp; waktu kunjungan kepada admin/resepsionis.</p>
         <h2>7. Cookie</h2>

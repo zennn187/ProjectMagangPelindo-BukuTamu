@@ -87,6 +87,24 @@ class VisitLatestTest extends TestCase
             ->assertSee('photo-binary', false);
     }
 
+    public function test_users_without_operator_role_cannot_view_dashboard_or_visitor_photos(): void
+    {
+        $user = User::make(['role' => 'guest']);
+        $visit = Visit::create([
+            'visitor_name' => 'Tamu Privat',
+            'visitor_phone' => '081234567890',
+            'visitor_institution' => 'PT Contoh',
+            'purpose' => 'Meeting',
+            'qr_code_token' => 'private-photo-access',
+            'status' => Visit::STATUS_PENDING,
+            'visit_type' => Visit::TYPE_MEET,
+        ]);
+        $visit->photo()->create(['contents' => 'photo-binary']);
+
+        $this->actingAs($user)->get(route('dashboard'))->assertForbidden();
+        $this->actingAs($user)->get(route('visits.photo', $visit))->assertForbidden();
+    }
+
     public function test_dashboard_date_input_uses_valid_date_format(): void
     {
         $user = User::factory()->create([

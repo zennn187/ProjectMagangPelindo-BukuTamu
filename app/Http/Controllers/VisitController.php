@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Visit;
+use App\Services\VisitStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,8 @@ class VisitController extends Controller
      */
     public function index(Request $request): View
     {
+        Gate::authorize('is-receptionist-or-admin');
+
         $selectedDay = $request->filled('day') ? $this->safeDay($request->input('day')) : now()->toDateString();
         $search = trim((string) $request->input('search', ''));
 
@@ -66,6 +69,8 @@ class VisitController extends Controller
      */
     public function photo(Visit $visit)
     {
+        Gate::authorize('is-receptionist-or-admin');
+
         $photo = $visit->photo()->first();
 
         if ($photo) {
@@ -141,10 +146,13 @@ class VisitController extends Controller
     {
         $this->authorizeVisit($visit, [Visit::STATUS_PENDING, Visit::STATUS_WAITING]);
 
-        $visit->update([
-            'status' => Visit::STATUS_ACTIVE,
-            'check_in_time' => now(),
-        ]);
+        $visit = app(VisitStatusService::class)->transition(
+            $visit,
+            [Visit::STATUS_PENDING, Visit::STATUS_WAITING],
+            Visit::STATUS_ACTIVE,
+            'check-in',
+            ['check_in_time' => now()],
+        );
 
         \App\Jobs\SendWhatsAppNotification::dispatch($visit->id, 'accepted')->afterResponse();
 
@@ -162,10 +170,14 @@ class VisitController extends Controller
             'note' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $visit->update([
-            'status' => Visit::STATUS_WAITING,
-            'status_note' => $data['note'] ?? null,
-        ]);
+        $visit = app(VisitStatusService::class)->transition(
+            $visit,
+            [Visit::STATUS_PENDING],
+            Visit::STATUS_WAITING,
+            'waiting',
+            ['status_note' => $data['note'] ?? null],
+            $data['note'] ?? null,
+        );
 
         return $this->actionResponse($request, $visit, 'waiting', 'Kunjungan diminta menunggu.');
     }
@@ -177,10 +189,13 @@ class VisitController extends Controller
     {
         $this->authorizeVisit($visit, [Visit::STATUS_ACTIVE]);
 
-        $visit->update([
-            'status' => Visit::STATUS_COMPLETED,
-            'check_out_time' => now(),
-        ]);
+        $visit = app(VisitStatusService::class)->transition(
+            $visit,
+            [Visit::STATUS_ACTIVE],
+            Visit::STATUS_COMPLETED,
+            'check-out',
+            ['check_out_time' => now()],
+        );
 
         return $this->actionResponse($request, $visit, 'check-out', 'Kunjungan selesai (Check-out).');
     }
@@ -197,12 +212,17 @@ class VisitController extends Controller
             abort(422, 'Kunjungan ini bukan titipan ke resepsionis.');
         }
 
-        $visit->update([
-            'status' => Visit::STATUS_COMPLETED,
-            'received_by_name' => auth()->user()->name,
-            'check_in_time' => now(),
-            'check_out_time' => now(),
-        ]);
+        $visit = app(VisitStatusService::class)->transition(
+            $visit,
+            [Visit::STATUS_PENDING],
+            Visit::STATUS_COMPLETED,
+            'accept-delivery',
+            [
+                'received_by_name' => auth()->user()->name,
+                'check_in_time' => now(),
+                'check_out_time' => now(),
+            ],
+        );
 
         \App\Jobs\SendWhatsAppNotification::dispatch($visit->id, 'accepted')->afterResponse();
 
@@ -216,7 +236,12 @@ class VisitController extends Controller
     {
         $this->authorizeVisit($visit, [Visit::STATUS_PENDING, Visit::STATUS_WAITING]);
 
-        $visit->update(['status' => Visit::STATUS_REJECTED]);
+        $visit = app(VisitStatusService::class)->transition(
+            $visit,
+            [Visit::STATUS_PENDING, Visit::STATUS_WAITING],
+            Visit::STATUS_REJECTED,
+            'rejected',
+        );
 
         return $this->actionResponse($request, $visit, 'rejected', 'Kunjungan ditolak.');
     }

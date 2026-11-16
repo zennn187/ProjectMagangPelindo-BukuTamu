@@ -36,6 +36,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <p class="text-sm text-bank-gray">Pantau tamu secara real-time dan lakukan verifikasi.</p>
     </div>
+    <div id="operator-connection-status" class="mb-5 hidden rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="status" aria-live="polite"></div>
 
     <div class="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-5 gap-4 sm:gap-5 mb-6">
         @foreach($cards as $card)
@@ -485,6 +486,13 @@
                 let lastVisitIds = [];
                 let hasLoadedVisits = false;
                 let actionToastShown = false;
+                const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;',
+                })[character]);
 
                 const toast = document.createElement('div');
                 toast.className = 'live-toast';
@@ -657,11 +665,11 @@
 
                 const renderVisitRow = (visit, index) => {
                     const photoCell = visit.photo_url
-                        ? `<button type="button" data-photo="${visit.photo_url}" class="photo-preview inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-bank-light bg-bank-light/30 shadow-sm hover:shadow-md transition" aria-label="Lihat foto tamu"><img src="${visit.photo_url}" alt="Foto tamu" class="h-full w-full object-cover"></button>`
+                        ? `<button type="button" data-photo="${escapeHtml(visit.photo_url)}" class="photo-preview inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-bank-light bg-bank-light/30 shadow-sm hover:shadow-md transition" aria-label="Lihat foto tamu"><img src="${escapeHtml(visit.photo_url)}" alt="Foto tamu" class="h-full w-full object-cover"></button>`
                         : `<div class="flex h-12 w-12 items-center justify-center rounded-lg border border-dashed border-bank-light bg-bank-bg text-bank-gray text-xs">Foto</div>`;
 
                     const typeCell = visit.visit_type === 'deliver'
-                        ? `<div>${typeLabel[visit.visit_type] ?? 'Kunjungan'}</div><div class="text-[11px] text-bank-gray mt-0.5">${prefLabel[visit.delivery_pref] ?? ''}</div>${visit.received_by_name ? '<div class="text-[11px] text-emerald-600 font-medium mt-0.5">Diterima oleh: ' + visit.received_by_name + '</div>' : ''}`
+                        ? `<div>${typeLabel[visit.visit_type] ?? 'Kunjungan'}</div><div class="text-[11px] text-bank-gray mt-0.5">${prefLabel[visit.delivery_pref] ?? ''}</div>${visit.received_by_name ? '<div class="text-[11px] text-emerald-600 font-medium mt-0.5">Diterima oleh: ' + escapeHtml(visit.received_by_name) + '</div>' : ''}`
                         : `<div>${typeLabel[visit.visit_type] ?? 'Kunjungan'}</div>`;
 
                     const statusBadge = `<span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">${statusLabel[visit.status] ?? visit.status}</span>`;
@@ -676,22 +684,22 @@
                         <tr data-visit-id="${visit.id}" class="hover:bg-bank-bg/60 align-top">
                             <td class="px-4 py-3 text-bank-navy text-center font-medium">${index}</td>
                             <td class="px-4 sm:px-5 py-3">
-                                <div class="font-medium text-bank-navy">${visit.visitor_name}</div>
-                                <div class="text-xs text-bank-gray">${visit.visitor_institution}</div>
-                                <div class="text-xs text-bank-gray/80">${visit.visitor_phone}</div>
-                                <div class="text-xs text-bank-gray mt-1">ke: <span class="font-medium">${visit.employee_name}</span></div>
+                                <div class="font-medium text-bank-navy">${escapeHtml(visit.visitor_name)}</div>
+                                <div class="text-xs text-bank-gray">${escapeHtml(visit.visitor_institution)}</div>
+                                <div class="text-xs text-bank-gray/80">${escapeHtml(visit.visitor_phone)}</div>
+                                <div class="text-xs text-bank-gray mt-1">ke: <span class="font-medium">${escapeHtml(visit.employee_name)}</span></div>
                             </td>
                             <td class="px-4 py-3">${photoCell}</td>
                             <td class="px-4 py-3 text-bank-navy">${typeCell}</td>
                             <td class="px-4 py-3 text-bank-navy hidden sm:table-cell whitespace-nowrap">${visit.created_at}</td>
                             <td class="px-4 py-3">${statusBadge}</td>
                             <td class="px-4 py-3 text-bank-navy hidden md:table-cell max-w-[240px]">
-                                <div class="truncate" title="${visit.purpose}">${visit.purpose}</div>
+                                <div class="truncate" title="${escapeHtml(visit.purpose)}">${escapeHtml(visit.purpose)}</div>
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex flex-wrap justify-center gap-1.5">
                                     <button type="button" data-visit-id="${visit.id}" class="detail-visit-btn rounded-lg bg-sky-100 px-3 py-1.5 text-xs font-medium text-sky-700 hover:bg-sky-200">Detail</button>
-                                    <a href="/badge/${visit.qr_code_token || ''}" target="_blank" class="rounded-lg bg-bank-light px-3 py-1.5 text-xs font-medium text-bank-navy hover:bg-bank-light/70">Badge QR</a>
+                                    <a href="/badge/${escapeHtml(visit.qr_code_token || '')}" target="_blank" class="rounded-lg bg-bank-light px-3 py-1.5 text-xs font-medium text-bank-navy hover:bg-bank-light/70">Badge QR</a>
                                     ${waBadge}
                                 </div>
                             </td>
@@ -783,6 +791,13 @@
 
                         await loadLatestVisits(true);
                     } catch (error) {
+                        const statusBanner = document.getElementById('operator-connection-status');
+                        if (statusBanner) {
+                            statusBanner.textContent = !navigator.onLine
+                                ? 'Koneksi internet terputus. Status tamu tidak diperbarui.'
+                                : 'Server/database tidak merespons. Jika aksi baru saja dikirim, periksa status tamu sebelum mengulang.';
+                            statusBanner.classList.remove('hidden');
+                        }
                         if (window.BukuTamuToast) {
                             window.BukuTamuToast.show({
                                 title: 'Gagal memperbarui status',
@@ -820,10 +835,18 @@
                         const timeoutId = setTimeout(() => controller.abort(), 5000);
                         const response = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }, signal: controller.signal });
                         clearTimeout(timeoutId);
-                        if (!response.ok) return;
+                        if (!response.ok) {
+                            const statusBanner = document.getElementById('operator-connection-status');
+                            if (statusBanner && response.status >= 500) {
+                                statusBanner.textContent = 'Server/database tidak tersedia. Data dashboard mungkin belum terbaru.';
+                                statusBanner.classList.remove('hidden');
+                            }
+                            return;
+                        }
 
                         const data = await response.json();
                         if (!data.visits || !tableBody) return;
+                        document.getElementById('operator-connection-status')?.classList.add('hidden');
 
                         const totalEl = document.getElementById('visit-total');
                         if (totalEl && typeof data.total !== 'undefined') {
@@ -881,7 +904,15 @@
                         lastVisitIds = currentIds;
                         hasLoadedVisits = true;
                     } catch (error) {
-                        if (error?.name !== 'AbortError') console.warn('Polling dashboard gagal:', error);
+                        if (error?.name !== 'AbortError') {
+                            const statusBanner = document.getElementById('operator-connection-status');
+                            if (statusBanner) {
+                                statusBanner.textContent = !navigator.onLine
+                                    ? 'Koneksi internet terputus. Data dashboard yang terlihat mungkin sudah lama.'
+                                    : 'Server/database tidak merespons. Data dashboard yang terlihat mungkin sudah lama.';
+                                statusBanner.classList.remove('hidden');
+                            }
+                        }
                     } finally {
                         loadLatestVisits.running = false;
                     }

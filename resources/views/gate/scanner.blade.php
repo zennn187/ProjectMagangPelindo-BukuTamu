@@ -10,10 +10,11 @@
 
 @section('content')
     @if(!empty($dbDown))
-        <div class="mb-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800 ring-1 ring-amber-200">
+        <div class="mb-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800 ring-1 ring-amber-200" role="alert">
             Database belum terhubung — hasil scan tidak bisa diproses sampai <strong>DB online</strong> diisi di Environment Variables lalu <strong>Redeploy</strong>.
         </div>
     @endif
+    <div id="scanner-connection-status" class="mb-4 hidden rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="status" aria-live="polite"></div>
     <div class="grid lg:grid-cols-5 gap-4 sm:gap-5 mb-6">
         <div class="lg:col-span-3 bg-white rounded-3xl p-5 sm:p-6 shadow-sm ring-1 ring-bank-light/70">
             <h2 class="font-semibold text-bank-navy mb-1">Scan Barcode</h2>
@@ -94,7 +95,7 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script>
         const csrf = document.querySelector('meta[name="csrf-token"]').content;
-        let html5QrCode = null, scanning = false, lockUntil = 0;
+        let html5QrCode = null, scanning = false, lockUntil = 0, scanInProgress = false;
         const recentList = document.getElementById('recent-scans');
         let hasRecent = false;
 
@@ -102,7 +103,18 @@
             if (!hasRecent) { recentList.innerHTML = ''; hasRecent = true; }
             const li = document.createElement('li');
             li.className = 'flex items-start justify-between gap-3 border-b border-bank-light pb-2';
-            li.innerHTML = `<div><p class="font-semibold text-bank-navy">${entry.name}</p><p class="text-xs text-bank-gray">${entry.message}</p></div><span class="text-xs whitespace-nowrap text-bank-gray">${entry.time}</span>`;
+            const details = document.createElement('div');
+            const name = document.createElement('p');
+            name.className = 'font-semibold text-bank-navy';
+            name.textContent = entry.name;
+            const message = document.createElement('p');
+            message.className = 'text-xs text-bank-gray';
+            message.textContent = entry.message;
+            details.append(name, message);
+            const time = document.createElement('span');
+            time.className = 'text-xs whitespace-nowrap text-bank-gray';
+            time.textContent = entry.time;
+            li.append(details, time);
             recentList.prepend(li);
             while (recentList.children.length > 6) recentList.lastChild.remove();
         }
@@ -116,15 +128,31 @@
             };
             const icons = { success: '✓', warning: '!', error: '✕' };
             box.className = 'mt-5 rounded-2xl p-4 sm:p-5 ' + (styles[data.status] || styles.error);
-            box.innerHTML = `
-                <div class="flex items-start gap-3">
-                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-lg font-bold ring-1 ring-black/5">${icons[data.status] || icons.error}</span>
-                    <div class="flex-1">
-                        <p class="font-bold text-sm">${data.title}</p>
-                        <p class="text-sm mt-1 leading-relaxed">${data.message}</p>
-                        ${data.wa_url ? `<button type="button" id="wa-send-btn" class="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">Kirim WhatsApp ke Tamu</button>` : ''}
-                    </div>
-                </div>`;
+            const content = document.createElement('div');
+            content.className = 'flex items-start gap-3';
+            const icon = document.createElement('span');
+            icon.className = 'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-lg font-bold ring-1 ring-black/5';
+            icon.textContent = icons[data.status] || icons.error;
+            const details = document.createElement('div');
+            details.className = 'flex-1';
+            const title = document.createElement('p');
+            title.className = 'font-bold text-sm';
+            title.textContent = data.title || 'Hasil scan';
+            const message = document.createElement('p');
+            message.className = 'text-sm mt-1 leading-relaxed';
+            message.textContent = data.message || 'Status scan tidak tersedia.';
+            details.append(title, message);
+            if (data.wa_url) {
+                const waButton = document.createElement('button');
+                waButton.type = 'button';
+                waButton.id = 'wa-send-btn';
+                waButton.className = 'mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors';
+                waButton.textContent = 'Kirim WhatsApp ke Tamu';
+                waButton.addEventListener('click', () => openWhatsApp(data.wa_url));
+                details.appendChild(waButton);
+            }
+            content.append(icon, details);
+            box.replaceChildren(content);
             box.classList.remove('hidden');
             if (navigator.vibrate) navigator.vibrate(data.status === 'success' ? 80 : [60, 50, 60]);
 
@@ -135,8 +163,6 @@
             // jadi petugas tidak perlu memilih/mengetik nomor lagi.
             if (data.wa_url) {
                 openWhatsApp(data.wa_url);
-                const waBtn = document.getElementById('wa-send-btn');
-                if (waBtn) waBtn.addEventListener('click', () => openWhatsApp(data.wa_url));
             }
         }
 
@@ -149,21 +175,56 @@
         }
 
         async function submitCode(code) {
-            const res = await fetch('{{ route('gate.scan') }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
-                body: JSON.stringify({ code }),
-            });
-            const data = await res.json();
-            showResult(data);
-            if (data.event) {
-                addRecent({
-                    name: data.event.name,
-                    message: data.event.check_out ? `Checkout · durasi ${data.event.duration ?? '-'}` : `Check-in pukul ${data.event.check_in}`,
-                    time: data.event.check_out || data.event.check_in,
+            if (scanInProgress) return;
+            if (!navigator.onLine) {
+                updateScannerConnectionStatus();
+                showResult({ status: 'error', title: 'Koneksi terputus', message: 'Scan belum diproses. Periksa koneksi, lalu pindai kembali setelah online.' });
+                return;
+            }
+            scanInProgress = true;
+            try {
+                const res = await fetch('{{ route('gate.scan') }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+                    body: JSON.stringify({ code }),
                 });
+                const data = await res.json();
+                if (res.status >= 500) {
+                    updateScannerConnectionStatus(true);
+                    showResult({ status: 'error', title: 'Server/database tidak tersedia', message: 'Status scan belum dapat dipastikan. Jangan scan berulang; minta petugas memeriksa riwayat tamu.' });
+                    return;
+                }
+                updateScannerConnectionStatus();
+                showResult(data);
+                if (data.event) {
+                    addRecent({
+                        name: data.event.name,
+                        message: data.event.check_out ? `Checkout · durasi ${data.event.duration ?? '-'}` : `Check-in pukul ${data.event.check_in}`,
+                        time: data.event.check_out || data.event.check_in,
+                    });
+                }
+            } catch {
+                updateScannerConnectionStatus(navigator.onLine);
+                showResult({ status: 'error', title: 'Koneksi bermasalah', message: 'Status scan belum dapat dipastikan. Jangan scan berulang; minta petugas memeriksa riwayat tamu.' });
+            } finally {
+                scanInProgress = false;
             }
         }
+
+        function updateScannerConnectionStatus(serverUnavailable = false) {
+            const status = document.getElementById('scanner-connection-status');
+            if (!navigator.onLine || serverUnavailable) {
+                status.textContent = !navigator.onLine
+                    ? 'Koneksi internet terputus. Scan tidak terkirim.'
+                    : 'Server/database tidak tersedia. Periksa status tamu sebelum mencoba scan kembali.';
+                status.classList.remove('hidden');
+            } else {
+                status.classList.add('hidden');
+            }
+        }
+        window.addEventListener('online', () => updateScannerConnectionStatus());
+        window.addEventListener('offline', () => updateScannerConnectionStatus());
+        updateScannerConnectionStatus();
 
         function handleScan(decodedText) {
             if (Date.now() < lockUntil) return;
@@ -255,7 +316,8 @@
                 const input = document.getElementById('manual-code');
                 input.value = btnFillTest.dataset.token || '';
                 input.focus();
-                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+                input.scrollIntoView({ behavior, block: 'center' });
             });
         }
     </script>

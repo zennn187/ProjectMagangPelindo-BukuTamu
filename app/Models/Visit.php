@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
@@ -161,6 +162,11 @@ class Visit extends Model
     public function photo(): HasOne
     {
         return $this->hasOne(VisitPhoto::class);
+    }
+
+    public function statusHistory(): HasMany
+    {
+        return $this->hasMany(VisitStatusHistory::class)->latest('created_at');
     }
 
     /**

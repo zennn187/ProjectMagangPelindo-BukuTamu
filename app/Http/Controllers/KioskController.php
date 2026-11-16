@@ -8,11 +8,12 @@ use App\Models\Employee;
 use App\Models\Visit;
 use App\Services\PhotoService;
 use App\Support\PhoneHelper;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Throwable;
 use Illuminate\View\View;
+use Throwable;
 
 class KioskController extends Controller
 {
@@ -25,10 +26,12 @@ class KioskController extends Controller
         // Fallback ke daftar kosong agar form tetap bisa dibuka.
         // (PDO MySQL 127.0.0.1 tanpa timeout bisa diam selamanya bila server macet,
         //  jadi baca via koneksi cepat-gagal; gagal = tampilkan form tanpa dropdown.)
+        $databaseAvailable = false;
         try {
             config(['database.connections.mysql.options' => [\PDO::ATTR_TIMEOUT => 2]]);
             DB::connection()->getPdo();
             $employees = \Illuminate\Support\Facades\Cache::remember('employees.active', 3600, fn () => Employee::active()->orderBy('name')->get());
+            $databaseAvailable = true;
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Kiosk employees load failed: '.get_class($e).': '.$e->getMessage());
             $employees = collect();
@@ -39,7 +42,7 @@ class KioskController extends Controller
 
         $waMessage = 'Halo Admin Buku Tamu Pelindo Regional 1 Dumai, saya ingin bertanya seputar kunjungan ke Pelabuhan Dumai.';
 
-        return view('kiosk.index', compact('employees', 'waNumber', 'waMessage'));
+        return view('kiosk.index', compact('employees', 'waNumber', 'waMessage', 'databaseAvailable'));
     }
 
     /**
@@ -86,6 +89,8 @@ class KioskController extends Controller
                 $visit->photo()->create($photoData);
             }
 
+            app(\App\Services\VisitStatusService::class)->recordInitial($visit, 'kiosk-registration');
+
             return $visit;
         });
 
@@ -120,7 +125,9 @@ class KioskController extends Controller
         ]);
         } catch (Throwable $e) {
             $errorId = (string) Str::uuid();
-            $message = substr($e->getMessage(), 0, 500);
+            $message = $e instanceof QueryException
+                ? ($e->getPrevious()?->getMessage() ?? 'Database query failed.')
+                : $e->getMessage();
 
             foreach (['visitor_name', 'visitor_phone', 'visitor_institution', 'purpose', 'photo'] as $field) {
                 $value = $request->input($field);
@@ -129,6 +136,8 @@ class KioskController extends Controller
                     $message = str_replace($value, '[redacted]', $message);
                 }
             }
+
+            $message = substr($message, 0, 500);
 
             Log::error('Kiosk submission failed', [
                 'error_id' => $errorId,

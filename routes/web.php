@@ -1,12 +1,15 @@
 <?php
 
 use App\Http\Controllers\Admin\BlacklistController;
+use App\Http\Controllers\Admin\DataManagementController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\GateReportController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\VisitStatusHistoryController;
 use App\Http\Controllers\GateController;
 use App\Http\Controllers\KioskController;
+use App\Http\Controllers\PrivacyController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Route;
@@ -14,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [KioskController::class, 'index'])->name('kiosk');
 Route::view('/welcome', 'welcome')->name('welcome');
 Route::view('/landing', 'welcome')->name('landing');
-Route::view('/privasi', 'privacy')->name('privacy');
+Route::get('/privasi', PrivacyController::class)->name('privacy');
 Route::post('/kiosk', [KioskController::class, 'store'])->middleware('throttle:10,1')->name('kiosk.store');
 Route::get('/badge/{token}', [KioskController::class, 'badge'])->name('badge');
 
@@ -49,6 +52,12 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+    Route::get('/data', [DataManagementController::class, 'index'])->name('data.index');
+    Route::post('/data/retention', [DataManagementController::class, 'updateRetention'])->name('data.retention');
+    Route::get('/data/backup', [DataManagementController::class, 'downloadBackup'])->name('data.backup');
+    Route::post('/data/restore', [DataManagementController::class, 'restoreBackup'])->name('data.restore');
+    Route::post('/data/delete-expired', [DataManagementController::class, 'deleteExpired'])->name('data.delete-expired');
+    Route::get('/status-history', [VisitStatusHistoryController::class, 'index'])->name('status-history.index');
 });
 
 Route::middleware('auth')->group(function () {
