@@ -118,6 +118,32 @@ class VisitLatestTest extends TestCase
         $response->assertDontSee('value="2026-08-30 00:00:00"', false);
     }
 
+    public function test_dashboard_initial_rows_use_the_same_compact_actions_as_live_rows(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'receptionist',
+        ]);
+        Visit::create([
+            'visitor_name' => 'Tamu Uji',
+            'visitor_phone' => '081234567890',
+            'visitor_institution' => 'PT Contoh',
+            'purpose' => 'Tes tampilan aksi',
+            'qr_code_token' => 'initial-actions-test',
+            'status' => Visit::STATUS_PENDING,
+            'visit_type' => Visit::TYPE_MEET,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertOk();
+        preg_match('/<tbody\b[^>]*>(.*?)<\/tbody>/s', $response->getContent(), $rows);
+        $this->assertArrayHasKey(1, $rows);
+        $this->assertStringContainsString('detail-visit-btn', $rows[1]);
+        $this->assertStringNotContainsString('Check-in</button>', $rows[1]);
+        $this->assertStringNotContainsString('Suruh Tunggu</button>', $rows[1]);
+        $this->assertStringNotContainsString('Tolak</button>', $rows[1]);
+    }
+
     public function test_checkout_redirect_contains_the_correct_visitor_for_toast(): void
     {
         $user = User::factory()->create([

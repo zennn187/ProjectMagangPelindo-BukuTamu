@@ -178,34 +178,19 @@
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex flex-wrap justify-center gap-1.5">
-                                    @if($visit->status === 'pending')
-                                        <form method="POST" action="{{ route('visits.check-in', $visit) }}" data-async-action="true">
-                                            @csrf
-                                            <button type="submit" class="rounded-lg bg-bank-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">Check-in</button>
-                                        </form>
-                                        <form method="POST" action="{{ route('visits.wait', $visit) }}" data-async-action="true" data-confirm="Minta tamu menunggu karena orang yang dituju tidak ada atau sedang cuti?" data-confirm-title="Suruh menunggu" data-confirm-action="Ya, lanjutkan" data-confirm-variant="warning">
-                                            @csrf
-                                            <button type="submit" class="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600">Suruh Tunggu</button>
-                                        </form>
-                                        <form method="POST" action="{{ route('visits.reject', $visit) }}" data-async-action="true" data-confirm="Tolak kunjungan ini? Status tamu akan berubah menjadi ditolak." data-confirm-title="Tolak kunjungan" data-confirm-action="Ya, tolak" data-confirm-variant="danger">
-                                            @csrf
-                                            <button type="submit" class="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-200">Tolak</button>
-                                        </form>
-                                    @elseif($visit->status === 'waiting')
-                                        <form method="POST" action="{{ route('visits.check-in', $visit) }}" data-async-action="true">
-                                            @csrf
-                                            <button type="submit" class="rounded-lg bg-bank-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">Check-in</button>
-                                        </form>
-                                        <form method="POST" action="{{ route('visits.reject', $visit) }}" data-async-action="true" data-confirm="Tolak kunjungan ini?" data-confirm-title="Tolak kunjungan" data-confirm-action="Ya, tolak" data-confirm-variant="danger">
-                                            @csrf
-                                            <button type="submit" class="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-200">Tolak</button>
-                                        </form>
-                                    @elseif($visit->status === 'active')
-                                        <form method="POST" action="{{ route('visits.check-out', $visit) }}" data-async-action="true" data-confirm="Lakukan check-out untuk tamu ini?" data-confirm-title="Check-out" data-confirm-action="Ya, check-out" data-confirm-variant="success">
-                                            @csrf
-                                            <button type="submit" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">Check-out</button>
-                                        </form>
-                                    @endif
+                                    <button
+                                        type="button"
+                                        data-visit-id="{{ $visit->id }}"
+                                        data-visitor-name="{{ $visit->visitor_name }}"
+                                        data-visitor-institution="{{ $visit->visitor_institution }}"
+                                        data-visitor-phone="{{ $visit->visitor_phone }}"
+                                        data-purpose="{{ $visit->purpose }}"
+                                        data-status="{{ $visit->status }}"
+                                        data-employee-name="{{ $visit->employee->name ?? '—' }}"
+                                        data-visit-type="{{ $visit->visit_type }}"
+                                        data-photo-url="{{ $photoUrl ?? '' }}"
+                                        class="detail-visit-btn rounded-lg bg-sky-100 px-3 py-1.5 text-xs font-medium text-sky-700 hover:bg-sky-200"
+                                    >Detail</button>
                                     <a href="{{ route('badge', $visit->qr_code_token) }}" target="_blank" class="rounded-lg bg-bank-light px-3 py-1.5 text-xs font-medium text-bank-navy hover:bg-bank-light/70">Badge QR</a>
                                     @if($visit->visitor_phone)
                                         <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $visit->visitor_phone) }}?text={{ rawurlencode('Salam, kami dari PT Pelindo Regional 1 Dumai. Terkait kunjungan Anda ke ' . ($visit->employee->name ?? 'staff kami') . ': ' . ($visit->status_note ?: 'status kunjungan Anda saat ini adalah ' . ($statusLabel[$visit->status] ?? $visit->status) . '.')) }}" target="_blank" class="rounded-lg bg-green-100 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-200">WA</a>
@@ -723,13 +708,26 @@
                     document.querySelectorAll('.detail-visit-btn').forEach((button) => {
                         button.addEventListener('click', function () {
                             const visitId = this.dataset.visitId;
-                            const visit = latestVisitsMap.get(String(visitId));
+                            const visit = latestVisitsMap.get(String(visitId)) || {
+                                id: visitId,
+                                visitor_name: this.dataset.visitorName,
+                                visitor_institution: this.dataset.visitorInstitution,
+                                visitor_phone: this.dataset.visitorPhone,
+                                purpose: this.dataset.purpose,
+                                status: this.dataset.status,
+                                employee_name: this.dataset.employeeName,
+                                visit_type: this.dataset.visitType,
+                                photo_url: this.dataset.photoUrl,
+                            };
                             if (visit) {
                                 openVisitDetail(visit);
                             }
                         });
                     });
                 };
+
+                bindPhotoPreview();
+                bindDetailButtons();
 
                 document.addEventListener('submit', async (event) => {
                     const form = event.target;
