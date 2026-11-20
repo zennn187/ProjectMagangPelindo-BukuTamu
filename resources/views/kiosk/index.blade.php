@@ -187,37 +187,6 @@
                 background: linear-gradient(90deg, transparent, rgba(148,163,184,0.18), transparent);
             }
 
-            .form-loading-overlay {
-                position: fixed;
-                inset: 0;
-                z-index: 70;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 1.25rem;
-                background: rgba(9, 26, 58, 0.58);
-                backdrop-filter: blur(8px);
-                -webkit-backdrop-filter: blur(8px);
-            }
-
-            .form-loading-overlay.hidden {
-                display: none;
-            }
-
-            .form-loading-card {
-                width: min(100%, 26rem);
-                border: 1px solid rgba(148, 163, 184, 0.2);
-                border-radius: 1.5rem;
-                background: #fff;
-                padding: 1.5rem;
-                box-shadow: 0 30px 80px rgba(2, 12, 35, 0.3);
-            }
-
-            [data-theme="dark"] .form-loading-card {
-                background: #1e293b;
-                color: #e2e8f0;
-            }
-
             [data-theme="dark"] [class~="bg-white/80"] {
                 background-color: #1e293b !important;
             }
@@ -307,17 +276,6 @@
 
             .badge-link-entrance {
                 animation: badge-link-in 450ms ease-out 260ms both;
-            }
-
-            .submit-spinner {
-                display: inline-block;
-                width: 1rem;
-                height: 1rem;
-                border: 2px solid currentColor;
-                border-right-color: transparent;
-                border-radius: 9999px;
-                animation: submit-spin 700ms linear infinite;
-                vertical-align: -0.15rem;
             }
 
             .glass-soft {
@@ -572,11 +530,7 @@
                 }
             }
 
-            @keyframes submit-spin {
-                to {
-                    transform: rotate(360deg);
-                }
-            }
+
 
             @media (prefers-reduced-motion: reduce) {
                 html { scroll-behavior: auto; }
@@ -696,8 +650,18 @@
         },
         openForm() {
             this.formOpen = true;
-            const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
-            this.$nextTick(() => setTimeout(() => document.getElementById('formulir')?.scrollIntoView({ behavior, block: 'start' }), 80));
+            this.$nextTick(() => {
+                const formSection = document.getElementById('formulir');
+                if (!formSection) return;
+
+                const root = document.documentElement;
+                const previousScrollBehavior = root.style.scrollBehavior;
+                root.style.scrollBehavior = 'auto';
+                formSection.scrollIntoView({ behavior: 'auto', block: 'start' });
+                requestAnimationFrame(() => {
+                    root.style.scrollBehavior = previousScrollBehavior;
+                });
+            });
         }
     }" @open-form.window="openForm()" class="font-sans antialiased min-h-screen text-bank-navy relative overflow-x-hidden">
 
@@ -1035,21 +999,6 @@
         <div id="formulir" x-show="formOpen" x-cloak class="mx-auto max-w-3xl scroll-mt-8 px-4 pb-16 pt-4">
             <form id="kiosk-form" class="arrival-form overflow-hidden rounded-3xl bg-white">
                 @csrf
-                <div id="kiosk-submit-loading" class="form-loading-overlay hidden" role="status" aria-live="polite" aria-label="Formulir sedang dikirim">
-                    <div class="form-loading-card">
-                        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-bank-blue">
-                            <span class="submit-spinner h-6 w-6" aria-hidden="true"></span>
-                        </div>
-                        <h3 class="mt-4 text-center text-base font-semibold text-bank-navy">Sedang mengirim kunjungan</h3>
-                        <p class="mt-1 text-center text-xs text-bank-gray">Mohon tunggu sebentar, data Anda sedang dicatat dengan aman.</p>
-                        <div class="mt-6 space-y-3" aria-hidden="true">
-                            <div class="skeleton h-3 w-2/5"></div>
-                            <div class="skeleton h-10 w-full rounded-xl"></div>
-                            <div class="skeleton h-3 w-1/3"></div>
-                            <div class="skeleton h-10 w-3/4 rounded-xl"></div>
-                        </div>
-                    </div>
-                </div>
                 <div class="space-y-5 px-5 py-5 sm:p-8">
                     <div id="kiosk-connection-status" class="{{ $databaseAvailable ? 'hidden' : '' }} rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="status" aria-live="polite">
                         {{ $databaseAvailable ? '' : 'Database belum tersedia. Formulir mungkin belum dapat dikirim; hubungi petugas untuk memastikan status sebelum mencoba lagi.' }}
@@ -1143,8 +1092,8 @@
 
                     <button type="submit" id="submit-btn" class="primary-action w-full rounded-xl bg-bank-blue py-3 text-white font-semibold shadow-[0_14px_30px_rgba(29,78,216,0.28)] hover:bg-indigo-700 disabled:opacity-50 transition-colors">
                         <span id="submit-label">Kirim Kunjungan</span>
-                        <span id="submit-spinner" class="submit-spinner ml-2 hidden" aria-hidden="true"></span>
                     </button>
+                    <p id="submit-status" class="hidden text-center text-sm text-bank-gray" role="status" aria-live="polite"></p>
                     <p id="form-error" class="hidden text-sm text-bank-red"></p>
                 </div>
             </form>
@@ -1256,8 +1205,7 @@
             const form = document.getElementById('kiosk-form');
             const submitBtn = document.getElementById('submit-btn');
             const submitLabel = document.getElementById('submit-label');
-            const submitSpinner = document.getElementById('submit-spinner');
-            const submitLoading = document.getElementById('kiosk-submit-loading');
+            const submitStatus = document.getElementById('submit-status');
             const formError = document.getElementById('form-error');
             const successModal = document.getElementById('success-modal');
             const successMsg = document.getElementById('success-msg');
@@ -1405,8 +1353,8 @@
                 submitBtn.setAttribute('aria-busy', 'true');
                 form.setAttribute('aria-busy', 'true');
                 submitLabel.textContent = 'Mengirim...';
-                submitSpinner.classList.remove('hidden');
-                submitLoading.classList.remove('hidden');
+                submitStatus.textContent = 'Mohon tunggu, formulir sedang dikirim.';
+                submitStatus.classList.remove('hidden');
 
                 const formData = new FormData(form);
                 try {
@@ -1484,6 +1432,8 @@
                     }
                     formError.textContent = err.message;
                     formError.classList.remove('hidden');
+                    submitStatus.textContent = '';
+                    submitStatus.classList.add('hidden');
                     window.BukuTamuToast?.show({
                         title: 'Gagal mengirim',
                         description: err.message,
@@ -1495,8 +1445,8 @@
                     submitBtn.removeAttribute('aria-busy');
                     form.removeAttribute('aria-busy');
                     submitLabel.textContent = 'Kirim Kunjungan';
-                    submitSpinner.classList.add('hidden');
-                    submitLoading.classList.add('hidden');
+                    submitStatus.textContent = '';
+                    submitStatus.classList.add('hidden');
                 }
             });
         })();

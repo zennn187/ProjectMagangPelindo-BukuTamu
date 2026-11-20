@@ -45,8 +45,8 @@
         </form>
     </div>
 
-    <div class="rounded-3xl bg-white p-6 shadow-sm mb-6">
-        <div class="flex items-center justify-between mb-4">
+    <div class="rounded-3xl bg-white p-5 shadow-sm mb-6 sm:p-6">
+        <div class="mb-3 flex items-center justify-between gap-3">
             <h2 class="font-semibold text-bank-navy">Grafik Kunjungan</h2>
             <form method="GET" action="{{ route('admin.reports.export') }}" target="_blank" class="inline-block" data-export-form="true">
                 <input type="hidden" name="from" value="{{ $from->format('Y-m-d') }}">
@@ -55,14 +55,6 @@
             </form>
         </div>
 
-        <div class="flex h-52 items-end gap-2 sm:gap-3 pt-4">
-            @foreach($chartData as $item)
-                <div class="flex flex-1 flex-col items-center gap-2">
-                    <span class="text-[10px] text-bank-gray">{{ $item['value'] }}</span>
-                    <div class="w-full rounded-t-xl bg-gradient-to-t from-bank-blue to-indigo-400 transition-all" style="height: {{ max(8, round(($item['value'] / $chartMax) * 100)) }}%"></div>
-                    <span class="text-[10px] text-bank-gray">{{ $item['label'] }}</span>
-                </div>
-            @endforeach
-        </div>
+        <x-visit-bar-chart :data="$chartData" :max-value="$chartMax" aria-label="Jumlah kunjungan per tanggal" />
     </div>
 @endsection

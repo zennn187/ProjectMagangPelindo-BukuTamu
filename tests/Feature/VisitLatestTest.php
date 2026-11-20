@@ -136,6 +136,8 @@ class VisitLatestTest extends TestCase
         $response = $this->actingAs($user)->get(route('dashboard'));
 
         $response->assertOk();
+        $response->assertSee('Jumlah kunjungan per hari selama tujuh hari terakhir', false);
+        $response->assertSee('<svg', false);
         preg_match('/<tbody\b[^>]*>(.*?)<\/tbody>/s', $response->getContent(), $rows);
         $this->assertArrayHasKey(1, $rows);
         $this->assertStringContainsString('detail-visit-btn', $rows[1]);

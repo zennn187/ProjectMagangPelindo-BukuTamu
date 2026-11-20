@@ -49,22 +49,11 @@
     </div>
 
     <div class="grid lg:grid-cols-3 gap-4 sm:gap-5 mb-6">
-        <div class="lg:col-span-2 bg-white rounded-3xl p-5 sm:p-6 shadow-sm">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="font-semibold text-bank-navy">Aktivitas 7 Hari</h2>
-                <span class="text-xs text-bank-gray">Total kunjungan per hari</span>
-            </div>
-            <div class="flex items-end justify-between gap-2 sm:gap-4 h-44">
-                @foreach($weekly as $day)
-                    <div class="flex-1 flex flex-col items-center gap-2 h-full">
-                        <span class="text-[10px] sm:text-xs font-medium text-bank-navy">{{ $day['total'] }}</span>
-                        <div class="w-full max-w-[34px] flex-1 flex items-end rounded-xl bg-bank-light/50 overflow-hidden">
-                            <div class="w-full rounded-xl bg-gradient-to-t from-bank-blue to-indigo-400 transition-all" style="height: {{ max(4, round($day['total'] / $maxWeekly * 100)) }}%"></div>
-                        </div>
-                        <span class="text-[10px] sm:text-xs text-bank-gray">{{ $day['label'] }}</span>
-                    </div>
-                @endforeach
-            </div>
+        <div class="lg:col-span-2">
+            <x-visit-particle-chart
+                :data="$weekly->map(fn ($day) => ['label' => $day['label'], 'value' => $day['total'], 'date' => $day['label']])"
+                aria-label="Jumlah kunjungan per hari selama tujuh hari terakhir"
+            />
         </div>
 
         <div class="bg-white rounded-3xl p-5 sm:p-6">
