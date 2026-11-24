@@ -49,6 +49,23 @@ $app = Application::configure(basePath: dirname(__DIR__))
             return false;
         });
 
+        $exceptions->report(function (Throwable $exception) {
+            $request = request();
+
+            if (! $request->isMethod('GET') || ! $request->is('gate/scanner')) {
+                return;
+            }
+
+            error_log('Gate scanner request exception: '.json_encode([
+                'exception_class' => $exception::class,
+                'message' => substr($exception->getMessage(), 0, 500),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+            ], JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE));
+
+            return false;
+        });
+
         // 419 = CSRF token tidak cocok dengan session (session kedaluwarsa, cookie
         // session hilang/mati, atau halaman lama dikirim ulang). Default Laravel
         // menampilkan "Page Expired" yang buntu, jadi arahkan kembali ke halaman

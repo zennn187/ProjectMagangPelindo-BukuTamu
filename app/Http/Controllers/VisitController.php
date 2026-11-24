@@ -39,7 +39,7 @@ class VisitController extends Controller
         $openVisits = Visit::with('employee')->withExists('photo')
             ->whereIn('status', $openVisitStatuses)
             ->orderBy('created_at')
-            ->paginate(10, ['*'], 'open_page')
+            ->paginate(5, ['*'], 'open_page')
             ->appends($request->query());
         $openVisitStatusCounts = Visit::query()
             ->whereIn('status', $openVisitStatuses)

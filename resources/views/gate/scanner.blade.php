@@ -1,6 +1,6 @@
 @extends('layouts.operator')
 
-@section('page_title', 'Scanner Gate')
+@section('page_title', 'Scan Gate')
 
 @push('header_actions')
     <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
@@ -12,6 +12,11 @@
     @if(!empty($dbDown))
         <div class="mb-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800 ring-1 ring-amber-200" role="alert">
             Database belum terhubung — hasil scan tidak bisa diproses sampai <strong>DB online</strong> diisi di Environment Variables lalu <strong>Redeploy</strong>.
+        </div>
+    @endif
+    @if(!empty($qrError))
+        <div class="mb-4 rounded-2xl border border-bank-light bg-bank-bg p-4 text-sm text-bank-navy" role="status">
+            QR tidak dapat dibuat saat ini. Scanner dan input manual tetap dapat digunakan; periksa Runtime Logs untuk detailnya.
         </div>
     @endif
     <div id="scanner-connection-status" class="mb-4 hidden rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="status" aria-live="polite"></div>
@@ -42,7 +47,11 @@
                 <h2 class="font-semibold text-bank-navy mb-1">Barcode Form Tamu</h2>
                 <p class="text-xs text-bank-gray mb-4">Tempel/cetak QR ini di kaca security. Tamu memindainya dengan HP untuk membuka form kedatangan.</p>
                 <div class="flex items-center gap-4">
-                    <div class="shrink-0 rounded-2xl bg-white p-2 ring-1 ring-bank-light">{!! $glassQrSvg !!}</div>
+                    @if($glassQrSvg)
+                        <div class="shrink-0 rounded-2xl bg-white p-2 ring-1 ring-bank-light">{!! $glassQrSvg !!}</div>
+                    @else
+                        <div class="grid h-28 w-28 shrink-0 place-items-center rounded-2xl bg-bank-bg p-3 text-center text-xs text-bank-gray">QR tidak tersedia</div>
+                    @endif
                     <div class="text-xs text-bank-gray leading-relaxed">
                         <p><span class="font-semibold text-bank-navy">URL:</span></p>
                         <p class="break-all">{{ route('gate.form') }}</p>
@@ -72,6 +81,8 @@
                             </div>
                         </div>
                     </div>
+                @elseif(isset($latestTestVisit) && $latestTestVisit && !empty($qrError))
+                    <p class="text-xs text-bank-gray">QR checkout tidak dapat dibuat. Coba kembali setelah Runtime Logs diperiksa.</p>
                 @else
                     <p class="text-xs text-bank-gray">Belum ada data tamu gate. Daftarkan 1 tamu dulu via <a href="{{ route('gate.form') }}" target="_blank" class="font-semibold text-bank-blue hover:underline">form gate</a>.</p>
                 @endif

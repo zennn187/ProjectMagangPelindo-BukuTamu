@@ -1,10 +1,10 @@
 @extends('layouts.operator')
 
-@section('page_title', 'Kedatangan Tamu (Gate)')
+@section('page_title', 'Antrean Gate')
 
 @push('header_actions')
     <a href="{{ route('gate.scanner') }}" class="inline-flex items-center gap-2 rounded-xl bg-bank-blue px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-bank-blue/25 hover:bg-indigo-700 transition-colors">
-        Buka Scanner
+        Buka Scan Gate
     </a>
 @endpush
 

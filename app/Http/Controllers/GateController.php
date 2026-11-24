@@ -112,9 +112,16 @@ class GateController extends Controller
     {
         Gate::authorize('is-receptionist-or-admin');
 
-        $glassQrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(150)
-            ->color(9, 26, 58)
-            ->generate(route('gate.form'));
+        $glassQrSvg = null;
+        $qrError = false;
+        try {
+            $glassQrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(150)
+                ->color(9, 26, 58)
+                ->generate(route('gate.form'));
+        } catch (\Throwable $e) {
+            $qrError = true;
+            report($e);
+        }
         $activitySince = now()->startOfSecond();
         $recentActivities = collect();
         $activityCount = 0;
@@ -146,14 +153,21 @@ class GateController extends Controller
                 'activityCount' => $activityCount,
                 'activityDay' => $activitySince->toDateString(),
                 'activitySince' => $activitySince->toISOString(),
+                'qrError' => $qrError,
             ]);
         }
 
-        $latestTestQrSvg = $latestTestVisit && $latestTestVisit->checkout_token
-            ? \SimpleSoftwareIO\QrCode\Facades\QrCode::size(140)
-                ->color(9, 26, 58)
-                ->generate($latestTestVisit->checkout_token)
-            : null;
+        $latestTestQrSvg = null;
+        if ($latestTestVisit && $latestTestVisit->checkout_token) {
+            try {
+                $latestTestQrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(140)
+                    ->color(9, 26, 58)
+                    ->generate($latestTestVisit->checkout_token);
+            } catch (\Throwable $e) {
+                $qrError = true;
+                report($e);
+            }
+        }
 
         return view('gate.scanner', compact(
             'glassQrSvg',
@@ -162,7 +176,8 @@ class GateController extends Controller
             'recentActivities',
             'activityCount',
             'activityDay',
-            'activitySince'
+            'activitySince',
+            'qrError'
         ));
     }
 

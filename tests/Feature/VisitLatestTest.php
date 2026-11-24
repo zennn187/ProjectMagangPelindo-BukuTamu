@@ -190,7 +190,7 @@ class VisitLatestTest extends TestCase
         $response = $this->actingAs($user)->get(route('dashboard'));
 
         $response->assertOk()
-            ->assertSee('Antrean Kunjungan Belum Selesai')
+            ->assertSee('Antrean Buku Tamu Belum Selesai')
             ->assertSee('Belum Dijawab')
             ->assertSee('Diminta Menunggu')
             ->assertSee('Sudah Checkin')
@@ -200,6 +200,40 @@ class VisitLatestTest extends TestCase
             ->assertSee('data-open-status="pending"', false)
             ->assertSee('data-open-status="waiting"', false)
             ->assertSee('data-open-status="active"', false);
+    }
+
+    public function test_dashboard_open_queue_shows_five_visits_per_page_with_bubble_pagination(): void
+    {
+        $user = User::factory()->create(['role' => 'receptionist']);
+
+        for ($number = 1; $number <= 6; $number++) {
+            Visit::create([
+                'visitor_name' => "Tamu antrean {$number}",
+                'visitor_phone' => '081234567890',
+                'visitor_institution' => 'PT Contoh',
+                'purpose' => 'Tes pagination antrean',
+                'qr_code_token' => "open-queue-page-{$number}",
+                'status' => Visit::STATUS_PENDING,
+                'visit_type' => Visit::TYPE_MEET,
+            ]);
+        }
+
+        $firstPage = $this->actingAs($user)->get(route('dashboard'));
+        $firstPage->assertOk()
+            ->assertSee('Antrean Buku Tamu')
+            ->assertSee('open_page=2')
+            ->assertSee('rounded-full bg-bank-blue', false);
+
+        preg_match('/<ul id="open-visit-list"[^>]*>(.*?)<\/ul>/s', $firstPage->getContent(), $firstPageQueue);
+        $this->assertArrayHasKey(1, $firstPageQueue);
+        $this->assertSame(5, substr_count($firstPageQueue[1], 'data-open-visit-id='));
+        $this->assertStringNotContainsString('Tamu antrean 6', $firstPageQueue[1]);
+
+        $secondPage = $this->actingAs($user)->get(route('dashboard', ['open_page' => 2]));
+        preg_match('/<ul id="open-visit-list"[^>]*>(.*?)<\/ul>/s', $secondPage->getContent(), $secondPageQueue);
+        $this->assertArrayHasKey(1, $secondPageQueue);
+        $this->assertSame(1, substr_count($secondPageQueue[1], 'data-open-visit-id='));
+        $this->assertStringContainsString('Tamu antrean 6', $secondPageQueue[1]);
     }
 
     public function test_dashboard_chart_adds_a_fifth_week_for_month_end_days(): void

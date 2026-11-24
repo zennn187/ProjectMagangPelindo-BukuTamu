@@ -77,9 +77,9 @@
                     @endphp
 
                     <a href="{{ route('dashboard') }}" class="{{ $bankMenu('Dashboard', $dashboardActive) }}"><span class="{{ $bankBar($dashboardActive) }}"></span><span class="pl-6">Dashboard</span></a>
-                    <a href="{{ route('dashboard', ['section' => 'antrean']) }}#open-visits" class="{{ $bankMenu('Antrean Kunjungan', $queueActive) }}"><span class="{{ $bankBar($queueActive) }}"></span><span class="pl-6">Antrean Kunjungan</span></a>
-                    <a href="{{ route('gate.scanner') }}" class="{{ $bankMenu('Scanner Gate', request()->routeIs('gate.scanner') || request()->routeIs('gate.scan')) }}"><span class="{{ $bankBar(request()->routeIs('gate.scanner') || request()->routeIs('gate.scan')) }}"></span><span class="pl-6">Scanner Gate</span></a>
-                    <a href="{{ route('gate-reports.index') }}" class="{{ $bankMenu('Kedatangan Tamu', request()->routeIs('gate-reports*')) }}"><span class="{{ $bankBar(request()->routeIs('gate-reports*')) }}"></span><span class="pl-6">Kedatangan Tamu</span></a>
+                    <a href="{{ route('dashboard', ['section' => 'antrean']) }}#open-visits" class="{{ $bankMenu('Antrean Buku Tamu', $queueActive) }}"><span class="{{ $bankBar($queueActive) }}"></span><span class="pl-6">Antrean Buku Tamu</span></a>
+                    <a href="{{ route('gate.scanner') }}" class="{{ $bankMenu('Scan Gate', request()->routeIs('gate.scanner') || request()->routeIs('gate.scan')) }}"><span class="{{ $bankBar(request()->routeIs('gate.scanner') || request()->routeIs('gate.scan')) }}"></span><span class="pl-6">Scan Gate</span></a>
+                    <a href="{{ route('gate-reports.index') }}" class="{{ $bankMenu('Antrean Gate', request()->routeIs('gate-reports*')) }}"><span class="{{ $bankBar(request()->routeIs('gate-reports*')) }}"></span><span class="pl-6">Antrean Gate</span></a>
 
                     @if(auth()->user()->isAdmin())
                         <a href="{{ route('admin.users.index') }}" class="{{ $bankMenu('Pengguna', request()->routeIs('admin.users*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.users*')) }}"></span><span class="pl-6">Pengguna</span></a>

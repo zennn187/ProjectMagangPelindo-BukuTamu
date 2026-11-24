@@ -90,7 +90,7 @@
     <section id="open-visits" class="mb-6 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-bank-light/70" aria-labelledby="open-visits-heading">
         <div class="flex flex-wrap items-start justify-between gap-3 px-5 py-5 sm:px-6">
             <div>
-                <h2 id="open-visits-heading" class="font-semibold text-bank-navy">Antrean Kunjungan Belum Selesai</h2>
+                <h2 id="open-visits-heading" class="font-semibold text-bank-navy">Antrean Buku Tamu Belum Selesai</h2>
                 <p class="mt-1 text-xs text-bank-gray">Semua tanggal · tetap tercatat sampai kunjungan selesai atau ditolak.</p>
             </div>
             <span class="text-sm font-semibold text-bank-navy">
@@ -173,7 +173,7 @@
 
         @if($openVisits->hasPages())
             <div class="border-t border-bank-light px-5 py-3 sm:px-6">
-                {{ $openVisits->links() }}
+                {{ $openVisits->links('components.pagination.bubble') }}
             </div>
         @endif
     </section>

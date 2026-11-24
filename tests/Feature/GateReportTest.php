@@ -103,8 +103,9 @@ class GateReportTest extends TestCase
         $response = $this->actingAs($admin)->get(route('dashboard'));
         $response->assertOk()
             ->assertSee('id="open-visits"', false)
-            ->assertSee('Antrean Kunjungan')
-            ->assertSee('Kedatangan Tamu');
+            ->assertSee('Antrean Buku Tamu')
+            ->assertSee('Scan Gate')
+            ->assertSee('Antrean Gate');
 
         $content = $response->getContent();
         $hrefs = [
