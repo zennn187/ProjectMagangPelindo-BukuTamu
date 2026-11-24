@@ -35,7 +35,6 @@
                 </form>
             </div>
 
-            <div id="scan-result" class="hidden mt-5 rounded-2xl p-4 sm:p-5" role="status"></div>
         </div>
 
         <div class="lg:col-span-2 space-y-4 sm:space-y-5">
@@ -54,7 +53,7 @@
 
             <div class="scanner-testing-card bg-amber-50 rounded-3xl p-5 sm:p-6 shadow-sm ring-1 ring-amber-200">
                 <div class="flex items-center justify-between mb-1">
-                    <h2 class="font-semibold text-bank-navy">🧪 Testing Scan</h2>
+                    <h2 class="font-semibold text-bank-navy">Testing Scan</h2>
                     <span class="scanner-dev-badge rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">Dev only</span>
                 </div>
                 <p class="text-xs text-bank-gray mb-4">Barcode checkout terakhir — tampilkan QR ini ke kamera HP lain untuk test. Bukan badge QR kiosk.</p>
@@ -80,12 +79,35 @@
 
             <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm ring-1 ring-bank-light/70">
                 <div class="flex items-center justify-between mb-3">
-                    <h2 class="font-semibold text-bank-navy">Aktivitas Terakhir</h2>
+                    <div>
+                        <h2 class="font-semibold text-bank-navy">Aktivitas Hari Ini</h2>
+                        <p class="mt-1 text-xs text-bank-gray">{{ \Illuminate\Support\Carbon::parse($activityDay)->translatedFormat('d F Y') }} · <span id="activity-count">{{ $activityCount }}</span> aktivitas</p>
+                    </div>
                     <a href="{{ route('gate-reports.index') }}" class="text-xs font-medium text-bank-blue hover:underline">Laporan →</a>
                 </div>
-                <ul id="recent-scans" class="space-y-3 text-sm text-bank-gray">
-                    <li class="text-xs text-bank-gray">Belum ada aktivitas pada sesi ini.</li>
+                <ul id="recent-scans" class="space-y-3 text-sm text-bank-gray" aria-live="polite">
+                    @forelse($recentActivities as $activity)
+                        <li data-activity-key="{{ ($activity['visit_id'] ?? '') . ':' . $activity['direction'] }}" class="flex items-start justify-between gap-3 border-b border-bank-light pb-3 last:border-0 last:pb-0">
+                            <div class="min-w-0">
+                                <p class="truncate font-semibold text-bank-navy">{{ $activity['name'] }}</p>
+                                <p class="mt-0.5 text-xs text-bank-gray">{{ $activity['label'] }} · {{ $activity['message'] }}</p>
+                            </div>
+                            <span class="shrink-0 text-xs tabular-nums text-bank-gray">{{ $activity['time'] }}</span>
+                        </li>
+                    @empty
+                        <li class="text-xs text-bank-gray">Belum ada aktivitas hari ini.</li>
+                    @endforelse
                 </ul>
+                <p id="activity-status" class="mt-3 hidden text-xs text-rose-700" role="status"></p>
+                <button type="button" id="toggle-activities" class="mt-4 hidden text-xs font-semibold text-bank-blue hover:underline">
+                    Lihat semua aktivitas hari ini
+                </button>
+                <div id="all-activities" class="mt-4 hidden border-t border-bank-light pt-4">
+                    <ul id="all-activity-list" class="space-y-3 text-sm text-bank-gray" aria-label="Seluruh aktivitas hari ini"></ul>
+                    <button type="button" id="load-more-activities" class="mt-4 hidden rounded-lg border border-bank-light px-3 py-2 text-xs font-semibold text-bank-navy hover:bg-bank-bg">
+                        Muat aktivitas lain
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -97,63 +119,193 @@
         const csrf = document.querySelector('meta[name="csrf-token"]').content;
         let html5QrCode = null, scanning = false, lockUntil = 0, scanInProgress = false;
         const recentList = document.getElementById('recent-scans');
-        let hasRecent = false;
+        const allActivityPanel = document.getElementById('all-activities');
+        const allActivityList = document.getElementById('all-activity-list');
+        const activityStatus = document.getElementById('activity-status');
+        const activityCountElement = document.getElementById('activity-count');
+        const toggleActivitiesButton = document.getElementById('toggle-activities');
+        const loadMoreActivitiesButton = document.getElementById('load-more-activities');
+        const activityDay = @json($activityDay);
+        const activityEndpoint = @json(route('gate.activities'));
+        let activitySince = @json($activitySince);
+        let activityCount = @json($activityCount);
+        let activityPage = 0;
+        let activityLastPage = 1;
+        let activitiesExpanded = false;
+        let activityPollRunning = false;
+        const seenActivityKeys = new Set(
+            Array.from(recentList.querySelectorAll('[data-activity-key]'))
+                .map(item => item.dataset.activityKey)
+                .filter(Boolean)
+        );
 
-        function addRecent(entry) {
-            if (!hasRecent) { recentList.innerHTML = ''; hasRecent = true; }
-            const li = document.createElement('li');
-            li.className = 'flex items-start justify-between gap-3 border-b border-bank-light pb-2';
-            const details = document.createElement('div');
-            const name = document.createElement('p');
-            name.className = 'font-semibold text-bank-navy';
-            name.textContent = entry.name;
-            const message = document.createElement('p');
-            message.className = 'text-xs text-bank-gray';
-            message.textContent = entry.message;
-            details.append(name, message);
-            const time = document.createElement('span');
-            time.className = 'text-xs whitespace-nowrap text-bank-gray';
-            time.textContent = entry.time;
-            li.append(details, time);
-            recentList.prepend(li);
-            while (recentList.children.length > 6) recentList.lastChild.remove();
+        function activityKey(entry) {
+            const visitId = entry.visit_id || entry.id;
+            return visitId && entry.direction ? `${visitId}:${entry.direction}` : '';
         }
 
-        function showResult(data) {
-            const box = document.getElementById('scan-result');
-            const styles = {
-                success: 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200',
-                warning: 'bg-amber-50 text-amber-800 ring-1 ring-amber-200',
-                error: 'bg-red-50 text-red-800 ring-1 ring-red-200',
-            };
-            const icons = { success: '✓', warning: '!', error: '✕' };
-            box.className = 'mt-5 rounded-2xl p-4 sm:p-5 ' + (styles[data.status] || styles.error);
-            const content = document.createElement('div');
-            content.className = 'flex items-start gap-3';
-            const icon = document.createElement('span');
-            icon.className = 'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-lg font-bold ring-1 ring-black/5';
-            icon.textContent = icons[data.status] || icons.error;
+        function createActivityItem(entry) {
+            const item = document.createElement('li');
+            item.className = 'flex items-start justify-between gap-3 border-b border-bank-light pb-3 last:border-0 last:pb-0';
             const details = document.createElement('div');
-            details.className = 'flex-1';
-            const title = document.createElement('p');
-            title.className = 'font-bold text-sm';
-            title.textContent = data.title || 'Hasil scan';
+            details.className = 'min-w-0';
+            const name = document.createElement('p');
+            name.className = 'truncate font-semibold text-bank-navy';
+            name.textContent = entry.name || 'Data tamu tidak tersedia';
             const message = document.createElement('p');
-            message.className = 'text-sm mt-1 leading-relaxed';
-            message.textContent = data.message || 'Status scan tidak tersedia.';
-            details.append(title, message);
-            if (data.wa_url) {
-                const waButton = document.createElement('button');
-                waButton.type = 'button';
-                waButton.id = 'wa-send-btn';
-                waButton.className = 'mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors';
-                waButton.textContent = 'Kirim WhatsApp ke Tamu';
-                waButton.addEventListener('click', () => openWhatsApp(data.wa_url));
-                details.appendChild(waButton);
+            message.className = 'mt-0.5 text-xs text-bank-gray';
+            message.textContent = `${entry.label || (entry.direction === 'out' ? 'Checkout' : 'Check-in')} · ${entry.message || (entry.direction === 'out' ? 'Kunjungan selesai' : 'Kedatangan tercatat')}`;
+            details.append(name, message);
+            const time = document.createElement('span');
+            time.className = 'shrink-0 text-xs tabular-nums text-bank-gray';
+            time.textContent = entry.time || '-';
+            item.append(details, time);
+
+            const key = activityKey(entry);
+            if (key) item.dataset.activityKey = key;
+            return item;
+        }
+
+        function updateActivityCount() {
+            activityCountElement.textContent = String(activityCount);
+            toggleActivitiesButton.textContent = activitiesExpanded
+                ? 'Tampilkan 5 terbaru'
+                : `Lihat semua aktivitas hari ini (${activityCount})`;
+            toggleActivitiesButton.classList.toggle('hidden', activityCount === 0);
+        }
+
+        function showActivityToast(entry) {
+            if (typeof window.showToast !== 'function') {
+                console.error('Toast helper tidak tersedia.');
+                return;
             }
-            content.append(icon, details);
-            box.replaceChildren(content);
-            box.classList.remove('hidden');
+
+            const isCheckout = entry.direction === 'out';
+            window.showToast({
+                title: isCheckout ? 'Kunjungan selesai' : 'Tamu masuk',
+                description: `${entry.name || 'Tamu'} · ${entry.time || '-'}`,
+                variant: 'success',
+                duration: 4200,
+            });
+        }
+
+        function addRecent(entry, notify = false) {
+            const key = activityKey(entry);
+            if (key && seenActivityKeys.has(key)) return;
+            if (key) seenActivityKeys.add(key);
+
+            if (!recentList.querySelector('[data-activity-key]')) recentList.replaceChildren();
+            recentList.prepend(createActivityItem(entry));
+            while (recentList.children.length > 5) recentList.lastChild.remove();
+
+            activityCount += 1;
+            updateActivityCount();
+            if (notify) showActivityToast(entry);
+
+            if (activitiesExpanded) {
+                const exists = Array.from(allActivityList.children)
+                    .some(item => item.dataset.activityKey === key);
+                if (!exists) allActivityList.prepend(createActivityItem(entry));
+            }
+        }
+
+        async function loadActivities(page = 1, append = false) {
+            const params = new URLSearchParams({ day: activityDay, page: String(page) });
+            const response = await fetch(`${activityEndpoint}?${params.toString()}`, {
+                headers: { 'Accept': 'application/json' },
+            });
+            if (!response.ok) throw new Error('Aktivitas gagal dimuat.');
+
+            const data = await response.json();
+            if (!append) allActivityList.replaceChildren();
+            data.items.forEach(entry => {
+                const key = activityKey(entry);
+                const exists = key && Array.from(allActivityList.children)
+                    .some(item => item.dataset.activityKey === key);
+                if (!exists) allActivityList.append(createActivityItem(entry));
+            });
+
+            activityPage = data.current_page;
+            activityLastPage = data.last_page;
+            activityCount = data.total;
+            updateActivityCount();
+            loadMoreActivitiesButton.classList.toggle('hidden', !data.has_more);
+            if (!allActivityList.children.length) {
+                const empty = document.createElement('li');
+                empty.className = 'text-xs text-bank-gray';
+                empty.textContent = 'Belum ada aktivitas hari ini.';
+                allActivityList.append(empty);
+            }
+        }
+
+        toggleActivitiesButton.addEventListener('click', async () => {
+            activitiesExpanded = !activitiesExpanded;
+            allActivityPanel.classList.toggle('hidden', !activitiesExpanded);
+            updateActivityCount();
+            if (activitiesExpanded && activityPage === 0) {
+                try {
+                    await loadActivities();
+                    activityStatus.classList.add('hidden');
+                } catch {
+                    activityStatus.textContent = 'Aktivitas tidak dapat dimuat. Periksa koneksi lalu coba lagi.';
+                    activityStatus.classList.remove('hidden');
+                }
+            }
+        });
+
+        loadMoreActivitiesButton.addEventListener('click', async () => {
+            if (activityPage >= activityLastPage) return;
+            loadMoreActivitiesButton.disabled = true;
+            try {
+                await loadActivities(activityPage + 1, true);
+                activityStatus.classList.add('hidden');
+            } catch {
+                activityStatus.textContent = 'Aktivitas berikutnya gagal dimuat. Coba lagi.';
+                activityStatus.classList.remove('hidden');
+            } finally {
+                loadMoreActivitiesButton.disabled = false;
+            }
+        });
+
+        async function pollActivities() {
+            if (activityPollRunning || document.hidden) return;
+            activityPollRunning = true;
+            try {
+                const params = new URLSearchParams({ day: activityDay, since: activitySince });
+                const response = await fetch(`${activityEndpoint}?${params.toString()}`, {
+                    headers: { 'Accept': 'application/json' },
+                });
+                if (!response.ok) throw new Error('Pembaruan aktivitas gagal.');
+                const data = await response.json();
+                activitySince = data.checked_at;
+                data.items.forEach(entry => addRecent(entry, true));
+                activityStatus.classList.add('hidden');
+            } catch {
+                activityStatus.textContent = 'Pembaruan aktivitas gagal. Periksa koneksi.';
+                activityStatus.classList.remove('hidden');
+            } finally {
+                activityPollRunning = false;
+            }
+        }
+
+        function showResult(data, suppressToast = false) {
+            const variants = { success: 'success', warning: 'warning', error: 'error' };
+            const variant = variants[data.status] || 'error';
+            if (!suppressToast && typeof window.showToast === 'function') {
+                window.showToast({
+                    title: data.title || 'Hasil scan',
+                    description: data.message || 'Status scan tidak tersedia.',
+                    variant,
+                    duration: variant === 'success' ? 3800 : 5200,
+                    action: data.wa_url ? {
+                        label: 'Kirim WhatsApp ke Tamu',
+                        onClick: () => openWhatsApp(data.wa_url),
+                    } : null,
+                });
+            } else if (!suppressToast) {
+                console.error('Toast helper tidak tersedia.');
+            }
+
             if (navigator.vibrate) navigator.vibrate(data.status === 'success' ? 80 : [60, 50, 60]);
 
             // Beep sukses / gagal supaya petugas tidak perlu menatap layar terus.
@@ -195,12 +347,19 @@
                     return;
                 }
                 updateScannerConnectionStatus();
-                showResult(data);
+                const eventKey = data.event ? activityKey(data.event) : '';
+                showResult(data, Boolean(eventKey && seenActivityKeys.has(eventKey)));
                 if (data.event) {
                     addRecent({
+                        id: data.event.id,
+                        visit_id: data.event.visit_id || data.event.id,
                         name: data.event.name,
-                        message: data.event.check_out ? `Checkout · durasi ${data.event.duration ?? '-'}` : `Check-in pukul ${data.event.check_in}`,
-                        time: data.event.check_out || data.event.check_in,
+                        direction: data.event.direction,
+                        time: data.event.time || data.event.check_out || data.event.check_in,
+                        label: data.event.direction === 'out' ? 'Checkout' : 'Check-in',
+                        message: data.event.direction === 'out'
+                            ? `Kunjungan selesai · durasi ${data.event.duration ?? '-'}`
+                            : `Kedatangan tercatat pukul ${data.event.check_in ?? '-'}`,
                     });
                 }
             } catch {
@@ -293,6 +452,9 @@
         document.getElementById('btn-start').addEventListener('click', () => startCamera(false));
 
         document.getElementById('btn-stop').addEventListener('click', stopCamera);
+        updateActivityCount();
+        pollActivities();
+        window.setInterval(pollActivities, 10000);
 
         // Auto-start kamera saat halaman dibuka (perlu HTTPS — sudah terpenuhi di Vercel).
         // Kalau browser menolak autoplay tanpa gesture, tombol "Mulai Kamera" tetap tersedia.

@@ -20,29 +20,26 @@
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6">
         <div class="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-bank-light/70">
-            <div class="flex items-center justify-center h-11 w-11 rounded-full bg-blue-50 text-blue-600 text-lg">👥</div>
-            <p class="mt-4 text-sm font-medium text-bank-gray">Total Tamu</p>
+            <div class="mb-4 h-1 w-8 rounded-full bg-bank-blue"></div>
+            <p class="text-sm font-medium text-bank-gray">Total Tamu</p>
             <p class="mt-1 text-2xl font-bold text-bank-navy" id="stat-total">{{ $counts['total'] }}</p>
         </div>
         <div class="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-bank-light/70">
-            <div class="flex items-center justify-center h-11 w-11 rounded-full bg-sky-50 text-sky-600 text-lg">🧍</div>
-            <p class="mt-4 text-sm font-medium text-bank-gray">Sedang Di Dalam</p>
+            <div class="mb-4 h-1 w-8 rounded-full bg-bank-blue"></div>
+            <p class="text-sm font-medium text-bank-gray">Sedang Di Dalam</p>
             <p class="mt-1 text-2xl font-bold text-bank-navy" id="stat-inside">{{ $counts['inside'] }}</p>
         </div>
         <div class="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-bank-light/70">
-            <div class="flex items-center justify-center h-11 w-11 rounded-full bg-emerald-50 text-emerald-600 text-lg">✅</div>
-            <p class="mt-4 text-sm font-medium text-bank-gray">Sudah Keluar</p>
+            <div class="mb-4 h-1 w-8 rounded-full bg-bank-blue"></div>
+            <p class="text-sm font-medium text-bank-gray">Sudah Keluar</p>
             <p class="mt-1 text-2xl font-bold text-bank-navy" id="stat-completed">{{ $counts['completed'] }}</p>
         </div>
         <div class="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-bank-light/70">
-            <div class="flex items-center justify-center h-11 w-11 rounded-full bg-amber-50 text-amber-600 text-lg">⏱</div>
-            <p class="mt-4 text-sm font-medium text-bank-gray">Rata-rata Durasi</p>
+            <div class="mb-4 h-1 w-8 rounded-full bg-bank-blue"></div>
+            <p class="text-sm font-medium text-bank-gray">Rata-rata Durasi</p>
             <p class="mt-1 text-2xl font-bold text-bank-navy">{{ $counts['avg_duration'] }}</p>
         </div>
     </div>
-
-    {{-- Notifikasi real-time --}}
-    <div id="notif-area" class="space-y-2 mb-6"></div>
 
     {{-- Tabel laporan --}}
     <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm ring-1 ring-bank-light/70 overflow-x-auto">
@@ -50,11 +47,12 @@
             <h2 class="font-semibold text-bank-navy">Laporan Kedatangan · {{ \Carbon\Carbon::parse($selectedDay)->translatedFormat('d F Y') }}</h2>
             <span class="text-xs text-bank-gray">Auto-refresh: <span id="poll-status">aktif</span></span>
         </div>
-        <table class="w-full text-sm text-left">
+        <table class="w-full min-w-[1120px] text-sm text-left">
             <thead>
                 <tr class="text-xs uppercase tracking-wide text-bank-gray border-b border-bank-light">
                     <th class="py-3 pr-4 font-medium">Tamu</th>
                     <th class="py-3 pr-4 font-medium">NIK</th>
+                    <th class="py-3 pr-4 font-medium">Telepon</th>
                     <th class="py-3 pr-4 font-medium">Instansi</th>
                     <th class="py-3 pr-4 font-medium">Menemui</th>
                     <th class="py-3 pr-4 font-medium">Masuk</th>
@@ -67,15 +65,38 @@
             <tbody id="report-rows">
                 @forelse($visits as $visit)
                     <tr class="border-b border-bank-light/60">
-                        <td class="py-3 pr-4 font-semibold text-bank-navy whitespace-nowrap">{{ $visit->visitor_name }}</td>
+                        @php
+                            $reportPhotoUrl = ($visit->photo_exists || ($visit->photo_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($visit->photo_path)))
+                                ? route('visits.photo', ['visit' => $visit])
+                                : null;
+                        @endphp
+                        <td class="py-3 pr-4">
+                            <div class="flex items-center gap-3">
+                                @if($reportPhotoUrl)
+                                    <a href="{{ $reportPhotoUrl }}" target="_blank" rel="noopener" class="shrink-0">
+                                        <img src="{{ $reportPhotoUrl }}" alt="Foto {{ $visit->visitor_name }}" loading="lazy" class="h-10 w-10 rounded-xl object-cover ring-1 ring-bank-light">
+                                    </a>
+                                @else
+                                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-bank-bg text-xs text-bank-gray">—</span>
+                                @endif
+                                <span class="font-semibold text-bank-navy whitespace-nowrap">{{ $visit->visitor_name }}</span>
+                            </div>
+                        </td>
                         <td class="py-3 pr-4 text-bank-gray">{{ $visit->identity_number ?? '-' }}</td>
+                        <td class="py-3 pr-4 whitespace-nowrap">
+                            @if($visit->visitor_phone)
+                                <a href="tel:{{ preg_replace('/[^0-9+]/', '', $visit->visitor_phone) }}" class="text-bank-gray hover:text-bank-blue">{{ $visit->visitor_phone }}</a>
+                            @else
+                                <span class="text-bank-gray">—</span>
+                            @endif
+                        </td>
                         <td class="py-3 pr-4 text-bank-gray">{{ $visit->visitor_institution }}</td>
                         <td class="py-3 pr-4 text-bank-gray">{{ $visit->person_to_meet ?? '-' }}</td>
                         <td class="py-3 pr-4 text-bank-gray whitespace-nowrap">{{ $visit->check_in_time?->format('H:i') }}</td>
                         <td class="py-3 pr-4 text-bank-gray whitespace-nowrap" data-cell="check_out">{{ $visit->check_out_time?->format('H:i') ?? '—' }}</td>
                         <td class="py-3 pr-4 text-bank-gray whitespace-nowrap" data-cell="duration">{{ $visit->durationText() ?? '—' }}</td>
                         <td class="py-3" data-cell="status">
-                            <span class="inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $visit->status === \App\Models\Visit::STATUS_COMPLETED ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700' }}">
+                            <span class="inline-block rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200">
                                 {{ $visit->status === \App\Models\Visit::STATUS_COMPLETED ? 'Selesai' : 'Di Dalam' }}
                             </span>
                         </td>
@@ -91,7 +112,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="9" class="py-10 text-center text-bank-gray">Belum ada tamu yang terdaftar pada tanggal ini.</td></tr>
+                    <tr><td colspan="10" class="py-10 text-center text-bank-gray">Belum ada tamu yang terdaftar pada tanggal ini.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -103,30 +124,60 @@
 @push('scripts')
     <script>
         const csrf = document.querySelector('meta[name="csrf-token"]').content;
-        const notifArea = document.getElementById('notif-area');
-        let lastPoll = new Date(Date.now() - 5 * 60000).toISOString();
+        let lastPoll = @json(now()->startOfSecond()->toISOString());
         let seenEvents = new Set();
 
         function pushNotif(evt) {
             const isOut = evt.direction === 'out';
-            const el = document.createElement('div');
-            el.className = 'flex items-start gap-3 rounded-2xl p-4 shadow-sm ring-1 ' +
-                (isOut ? 'bg-emerald-50 ring-emerald-200' : 'bg-sky-50 ring-sky-200');
-            el.innerHTML = `
-                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-lg ring-1 ring-black/5">${isOut ? '🚪' : '🙋'}</span>
-                <div class="flex-1">
-                    <p class="text-sm font-semibold ${isOut ? 'text-emerald-800' : 'text-sky-800'}">${evt.message}</p>
-                    ${evt.duration ? `<p class="text-xs mt-0.5 ${isOut ? 'text-emerald-600' : 'text-sky-600'}">Durasi kunjungan: ${evt.duration}</p>` : ''}
-                </div>
-                <span class="text-xs whitespace-nowrap text-bank-gray">${evt.time}</span>`;
-            notifArea.prepend(el);
-            while (notifArea.children.length > 3) notifArea.lastChild.remove();
-            setTimeout(() => el.remove(), 30000);
+            if (typeof window.showToast !== 'function') {
+                console.error('Toast helper tidak tersedia.');
+                return;
+            }
+
+            const details = [evt.message, evt.duration ? `Durasi ${evt.duration}` : null, evt.time]
+                .filter(Boolean)
+                .join(' · ');
+            window.showToast({
+                title: isOut ? 'Kunjungan selesai' : 'Tamu masuk',
+                description: details,
+                variant: 'success',
+                duration: 4200,
+            });
         }
 
         function updateRow(v) {
             const row = document.createElement('tr');
             row.className = 'border-b border-bank-light/60';
+
+            const visitorCell = document.createElement('td');
+            visitorCell.className = 'py-3 pr-4';
+            const visitor = document.createElement('div');
+            visitor.className = 'flex items-center gap-3';
+            if (v.photo_url) {
+                const photoLink = document.createElement('a');
+                photoLink.href = v.photo_url;
+                photoLink.target = '_blank';
+                photoLink.rel = 'noopener';
+                photoLink.className = 'shrink-0';
+                const photo = document.createElement('img');
+                photo.src = v.photo_url;
+                photo.alt = `Foto ${v.name}`;
+                photo.loading = 'lazy';
+                photo.className = 'h-10 w-10 rounded-xl object-cover ring-1 ring-bank-light';
+                photoLink.append(photo);
+                visitor.append(photoLink);
+            } else {
+                const placeholder = document.createElement('span');
+                placeholder.className = 'grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-bank-bg text-xs text-bank-gray';
+                placeholder.textContent = '—';
+                visitor.append(placeholder);
+            }
+            const visitorName = document.createElement('span');
+            visitorName.className = 'font-semibold text-bank-navy whitespace-nowrap';
+            visitorName.textContent = v.name || '—';
+            visitor.append(visitorName);
+            visitorCell.append(visitor);
+            row.append(visitorCell);
 
             const addCell = (value, className, fallback = '—') => {
                 const cell = document.createElement('td');
@@ -136,8 +187,20 @@
                 return cell;
             };
 
-            addCell(v.name, 'py-3 pr-4 font-semibold text-bank-navy whitespace-nowrap', '');
             addCell(v.identity, 'py-3 pr-4 text-bank-gray');
+            const phoneCell = document.createElement('td');
+            phoneCell.className = 'py-3 pr-4 whitespace-nowrap';
+            if (v.phone) {
+                const phoneLink = document.createElement('a');
+                phoneLink.href = `tel:${String(v.phone).replace(/[^0-9+]/g, '')}`;
+                phoneLink.className = 'text-bank-gray hover:text-bank-blue';
+                phoneLink.textContent = v.phone;
+                phoneCell.append(phoneLink);
+            } else {
+                phoneCell.textContent = '—';
+                phoneCell.className += ' text-bank-gray';
+            }
+            row.append(phoneCell);
             addCell(v.institution, 'py-3 pr-4 text-bank-gray');
             addCell(v.person_to_meet, 'py-3 pr-4 text-bank-gray');
             addCell(v.check_in, 'py-3 pr-4 text-bank-gray whitespace-nowrap');
@@ -148,8 +211,7 @@
             statusCell.className = 'py-3';
             const status = document.createElement('span');
             const completed = v.status === 'completed';
-            status.className = 'inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ' +
-                (completed ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700');
+            status.className = 'inline-block rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200';
             status.textContent = completed ? 'Selesai' : 'Di Dalam';
             statusCell.append(status);
             row.append(statusCell);
@@ -175,7 +237,7 @@
             if (!visits.length) {
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
-                cell.colSpan = 9;
+                cell.colSpan = 10;
                 cell.className = 'py-10 text-center text-bank-gray';
                 cell.textContent = 'Belum ada tamu yang terdaftar pada tanggal ini.';
                 row.append(cell);

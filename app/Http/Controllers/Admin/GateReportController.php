@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
@@ -28,7 +29,7 @@ class GateReportController extends Controller
         $search = trim((string) $request->input('search', ''));
 
         $query = $this->gateQuery($selectedDay, $search);
-        $visits = (clone $query)->orderBy('check_in_time', 'desc')->paginate(10)->appends($request->query());
+        $visits = (clone $query)->withExists('photo')->orderBy('check_in_time', 'desc')->paginate(10)->appends($request->query());
 
         $base = $this->gateQuery($selectedDay, $search);
 
@@ -80,6 +81,7 @@ class GateReportController extends Controller
         $since = $request->filled('since')
             ? $this->safeDateTime($request->input('since'))
             : now()->subMinutes(5);
+        $checkedAt = now()->startOfSecond();
 
         $query = $this->gateQuery($selectedDay, $search);
         $counts = [
@@ -88,6 +90,7 @@ class GateReportController extends Controller
             'completed' => (clone $query)->where('status', Visit::STATUS_COMPLETED)->count(),
         ];
         $visits = (clone $query)
+            ->withExists('photo')
             ->orderBy('check_in_time', 'desc')
             ->paginate(10, ['*'], 'page', max(1, (int) $request->input('page', 1)));
 
@@ -128,6 +131,10 @@ class GateReportController extends Controller
                 'identity' => $v->identity_number,
                 'institution' => $v->visitor_institution,
                 'person_to_meet' => $v->person_to_meet,
+                'phone' => $v->visitor_phone,
+                'photo_url' => ($v->photo_exists || ($v->photo_path && Storage::disk('public')->exists($v->photo_path)))
+                    ? route('visits.photo', ['visit' => $v], false)
+                    : null,
                 'check_in' => $v->check_in_time?->format('H:i'),
                 'check_out' => $v->check_out_time?->format('H:i'),
                 'duration' => $v->durationText(),
@@ -135,7 +142,7 @@ class GateReportController extends Controller
                 'chat_url' => $v->visitor_phone ? route('gate.chat', $v) : null,
             ]),
             'events' => $events,
-            'last_updated_at' => now()->toISOString(),
+            'last_updated_at' => $checkedAt->toISOString(),
         ]);
     }
 

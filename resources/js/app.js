@@ -6,7 +6,7 @@ import Lenis from 'lenis';
 window.Alpine = Alpine;
 Alpine.start();
 
-const createToast = ({ title, description, variant = 'default', duration = 3200 }) => {
+const createToast = ({ title, description, variant = 'default', duration = 3200, action = null }) => {
     const container = document.getElementById('toast-container');
     if (!container) return;
 
@@ -37,6 +37,17 @@ const createToast = ({ title, description, variant = 'default', duration = 3200 
         detail.className = 'mt-1 text-xs opacity-80 leading-5';
         detail.textContent = description;
         text.appendChild(detail);
+    }
+    if (action && action.label && typeof action.onClick === 'function') {
+        const actionButton = document.createElement('button');
+        actionButton.type = 'button';
+        actionButton.className = 'mt-3 inline-flex rounded-lg bg-bank-blue px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700';
+        actionButton.textContent = action.label;
+        actionButton.addEventListener('click', () => {
+            action.onClick();
+            close();
+        });
+        text.appendChild(actionButton);
     }
     const closeButton = document.createElement('button');
     closeButton.type = 'button';

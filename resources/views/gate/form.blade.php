@@ -29,51 +29,20 @@
             min-height: 100vh;
             font-family: Figtree, ui-sans-serif, system-ui, sans-serif;
             color: var(--ink);
-            background: #edf2fa;
-            padding: 0 16px 56px;
+            background: #f4f6fa;
+            padding: 0 16px 32px;
             overflow-x: hidden;
         }
 
         body::before, body::after {
-            content: '';
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(70px);
-            pointer-events: none;
-            z-index: -1;
+            display: none;
         }
-
-        body::before { width: 420px; height: 420px; top: -120px; right: -100px; background: rgba(37,99,235,.22); }
-        body::after  { width: 380px; height: 380px; bottom: -120px; left: -110px; background: rgba(29,78,216,.18); }
 
         .band {
-            margin: 0 -16px 28px;
-            padding: 36px 16px 130px;
-            background: linear-gradient(180deg, #0a1d44, #123b78 78%, #1a4a94);
+            margin: 0 -16px;
+            padding: 28px 16px 66px;
+            background: #0c2348;
             position: relative;
-            overflow: hidden;
-        }
-
-        .band::before {
-            content: '';
-            position: absolute;
-            top: -60px; right: -60px;
-            width: 280px; height: 280px;
-            border: 1px solid rgba(147,197,253,.12);
-            border-radius: 40px;
-            transform: rotate(30deg);
-            pointer-events: none;
-        }
-
-        .band::after {
-            content: '';
-            position: absolute;
-            left: 50%; bottom: -46px;
-            transform: translateX(-50%);
-            width: 560px; height: 120px;
-            border-radius: 50%;
-            background: rgba(255,255,255,.07);
-            filter: blur(8px);
         }
 
         .band-inner {
@@ -86,47 +55,40 @@
         }
 
         .band .logo {
-            width: 200px; height: 72px;
-            border-radius: 18px;
+            width: 148px; height: 52px;
+            border-radius: 12px;
             background: #fff;
             object-fit: contain;
-            padding: 10px 18px;
-            margin: 0 auto 16px;
+            padding: 8px 14px;
+            margin: 0 auto 14px;
             display: block;
-            box-shadow: 0 12px 28px rgba(2,6,23,.35);
-            animation: logo-in .7s cubic-bezier(.22,1,.36,1) both;
         }
 
         .band h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 23px;
             letter-spacing: -.025em;
-            font-weight: 800;
-            animation: fade-up .6s ease .1s both;
+            font-weight: 700;
         }
 
         .band p {
             margin: 8px 0 0;
             font-size: 13px;
             color: rgba(255,255,255,.75);
-            animation: fade-up .6s ease .2s both;
         }
 
         .stepper {
             max-width: 640px;
-            margin: -100px auto 24px;
+            margin: -30px auto 18px;
             position: relative;
-            animation: fade-up .6s ease .25s both;
         }
 
         .stepper-card {
-            background: rgba(255,255,255,.82);
-            -webkit-backdrop-filter: blur(18px) saturate(1.4);
-            backdrop-filter: blur(18px) saturate(1.4);
-            border: 1px solid rgba(255,255,255,.72);
-            border-radius: 20px;
-            box-shadow: 0 16px 45px rgba(9,26,58,.13);
-            padding: 18px 24px;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            box-shadow: 0 5px 16px rgba(9,26,58,.06);
+            padding: 12px 20px;
         }
 
         .steps { display: flex; align-items: center; justify-content: center; }
@@ -145,12 +107,12 @@
         }
 
         .step.done .step-dot   { border-color: var(--ok);   background: var(--ok);   color: #fff; }
-        .step.active .step-dot { border-color: var(--blue);  color: var(--blue); box-shadow: 0 0 0 5px rgba(37,99,235,.12); }
-        .step-label { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+        .step.active .step-dot { border-color: var(--blue); color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
+        .step-label { font-size: 12px; font-weight: 600; color: var(--muted); }
         .step.done .step-label, .step.active .step-label { color: var(--navy); }
 
         .step-line {
-            width: 50px; height: 2px;
+            width: 42px; height: 2px;
             background: var(--line);
             border-radius: 2px;
             margin: 0 12px;
@@ -169,24 +131,23 @@
         .shell {
             max-width: 640px;
             margin: 0 auto;
-            animation: fade-up .65s ease .3s both;
         }
 
         .card {
-            background: rgba(255,255,255,.78);
-            -webkit-backdrop-filter: blur(20px) saturate(1.5);
-            backdrop-filter: blur(20px) saturate(1.5);
-            border: 1px solid rgba(255,255,255,.68);
-            border-radius: 24px;
-            box-shadow: 0 28px 65px rgba(15,23,42,.14), inset 0 1px 0 rgba(255,255,255,.72);
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(15,23,42,.07);
             overflow: hidden;
         }
 
         .section-head {
-            padding: 20px 26px;
+            margin: -24px -26px 22px;
+            padding: 16px 24px;
             border-bottom: 1px solid var(--line-soft);
             display: flex; align-items: center; gap: 14px;
-            background: rgba(255,255,255,.5);
+            background: #f8fafc;
+            border-radius: 17px 17px 0 0;
         }
 
         .section-icon {
@@ -249,17 +210,17 @@
 
         .cam-box {
             display: flex; flex-direction: column; align-items: center; gap: 14px;
-            border: 2px dashed rgba(148,163,184,.4);
-            border-radius: 18px; padding: 18px;
-            background: rgba(248,250,252,.65);
-            transition: border-color .25s, background .25s;
+            border: 1px dashed #cbd5e1;
+            border-radius: 14px; padding: 14px;
+            background: #f8fafc;
+            transition: border-color .2s, background .2s;
         }
 
         .cam-box video, .cam-box canvas {
             width: 100%; max-width: 240px; height: auto;
             aspect-ratio: 4/3; object-fit: cover;
             border-radius: 14px; background: #0f172a;
-            box-shadow: 0 8px 24px rgba(9,26,58,.18);
+            box-shadow: 0 5px 14px rgba(9,26,58,.12);
         }
 
         .cam-placeholder {
@@ -290,39 +251,30 @@
         .btn-mini.primary {
             background: var(--blue); color: #fff;
             border-color: var(--blue);
-            box-shadow: 0 10px 24px rgba(37,99,235,.25);
         }
 
-        .btn-mini.primary:hover { background: var(--blue-dark); box-shadow: 0 14px 28px rgba(37,99,235,.32); }
+        .btn-mini.primary:hover { background: var(--blue-dark); }
 
         .card-foot {
-            padding: 20px 26px;
+            padding: 18px 24px;
             border-top: 1px solid rgba(148,163,184,.15);
-            background: rgba(255,255,255,.55);
+            background: #fff;
         }
 
         .btn-submit {
             display: flex; align-items: center; justify-content: center; gap: 10px;
-            width: 100%; padding: 15px;
-            border: 0; border-radius: 14px;
-            background: linear-gradient(135deg, var(--blue), var(--blue-dark));
-            color: #fff; font: inherit; font-size: 15.5px; font-weight: 800;
-            cursor: pointer; letter-spacing: -.01em;
-            transition: transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s, opacity .2s;
-            box-shadow: 0 14px 35px rgba(37,99,235,.3);
+            width: 100%; padding: 13px;
+            border: 0; border-radius: 12px;
+            background: var(--blue);
+            color: #fff; font: inherit; font-size: 15px; font-weight: 700;
+            cursor: pointer;
+            transition: transform .18s, box-shadow .18s, opacity .18s, background .18s;
+            box-shadow: 0 5px 14px rgba(37,99,235,.18);
             position: relative; overflow: hidden;
         }
 
-        .btn-submit::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,.14), transparent);
-            opacity: 0; transition: opacity .2s;
-        }
-
-        .btn-submit:hover            { transform: translateY(-2px); box-shadow: 0 22px 48px rgba(37,99,235,.38); }
-        .btn-submit:hover::before    { opacity: 1; }
-        .btn-submit:active           { transform: translateY(0); box-shadow: 0 10px 25px rgba(37,99,235,.25); }
+        .btn-submit:hover            { background: var(--blue-dark); transform: translateY(-1px); box-shadow: 0 8px 18px rgba(37,99,235,.22); }
+        .btn-submit:active           { transform: translateY(0); }
         .btn-submit:disabled         { opacity: .6; cursor: not-allowed; transform: none; }
 
         .btn-submit .arrow-icon      { transition: transform .2s; }
@@ -342,29 +294,27 @@
 
         .foot-note { margin-top: 14px; text-align: center; font-size: 11.5px; color: var(--muted); }
 
-        .result { display: none; text-align: center; padding: 48px 28px; }
-        .result.show { display: block; animation: fade-up .5s cubic-bezier(.22,1,.36,1) both; }
+        .result { display: none; text-align: center; padding: 36px 24px; }
+        .result.show { display: block; }
 
         .result .ok-ring {
-            width: 72px; height: 72px; margin: 0 auto 20px;
+            width: 56px; height: 56px; margin: 0 auto 16px;
             border-radius: 50%; background: var(--ok-bg); color: var(--ok);
-            display: grid; place-items: center; font-size: 32px;
-            animation: pop-in .5s cubic-bezier(.34,1.6,.5,1) .1s both;
-            box-shadow: 0 0 0 8px rgba(22,163,74,.08);
+            display: grid; place-items: center; font-size: 26px;
         }
 
-        .result h2    { margin: 0 0 10px; color: var(--navy); font-size: 22px; font-weight: 800; }
-        .result p     { margin: 0 auto; max-width: 440px; color: var(--muted); font-size: 13.5px; line-height: 1.7; }
+        .result h2    { margin: 0 0 8px; color: var(--navy); font-size: 20px; font-weight: 700; }
+        .result p     { margin: 0 auto; max-width: 440px; color: var(--muted); font-size: 14px; line-height: 1.6; }
 
         .result .again {
-            margin-top: 22px; padding: 11px 22px;
-            border-radius: 12px; background: var(--line-soft);
+            margin-top: 20px; padding: 11px 18px;
+            border-radius: 10px; background: #fff;
             color: var(--navy); font-size: 13px; font-weight: 700;
-            cursor: pointer; border: 0; display: inline-block;
+            cursor: pointer; border: 1px solid var(--line); display: inline-block;
             transition: background .15s, transform .15s;
         }
 
-        .result .again:hover { background: #dde6f5; transform: translateY(-1px); }
+        .result .again:hover { background: #f8fafc; transform: translateY(-1px); }
 
         .err {
             display: none; margin: 0 0 18px;
@@ -386,21 +336,34 @@
             font-size: 13px;
         }
 
-        .foot-bottom { margin-top: 20px; text-align: center; font-size: 11px; color: var(--muted); }
+        .foot-bottom { margin-top: 16px; text-align: center; font-size: 11px; line-height: 1.5; color: var(--muted); }
 
-        @keyframes logo-in  { from { opacity: 0; transform: translateY(-16px) scale(.85); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        @keyframes fade-up  { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pop-in   { 0% { transform: scale(0); } 60% { transform: scale(1.1); } 100% { transform: scale(1); } }
         @keyframes shake    { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 
         @media (max-width: 560px) {
             .grid-form   { grid-template-columns: 1fr; }
-            .band        { padding-top: 28px; }
-            .step-label  { display: none; }
-            .step-line   { width: 28px; }
-            .card-body   { padding: 20px 18px 24px; }
-            .card-foot   { padding: 18px; }
-            .section-head { padding: 16px 18px; }
+            body { padding: 0 12px 24px; }
+            .band { margin: 0 -12px; padding: 22px 12px 56px; }
+            .band .logo { width: 128px; height: 46px; margin-bottom: 12px; }
+            .band h1 { font-size: 21px; }
+            .band p { font-size: 12px; }
+            .stepper { margin: -22px auto 16px; }
+            .stepper-card { padding: 11px 12px; }
+            .step { gap: 6px; }
+            .step-dot { width: 28px; height: 28px; }
+            .step-label { display: inline; font-size: 10px; }
+            .step-line { width: 24px; margin: 0 6px; }
+            .card { border-radius: 16px; }
+            .card-body { padding: 20px 18px 22px; }
+            .card-foot { padding: 16px 18px; }
+            .section-head { margin: -20px -18px 18px; padding: 14px 16px; border-radius: 15px 15px 0 0; }
+            .result { padding: 28px 18px; }
+            input, textarea { font-size: 16px; }
+        }
+
+        @media (max-width: 360px) {
+            .step-label { font-size: 9px; }
+            .step-line { width: 18px; margin: 0 4px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -442,7 +405,7 @@
                     <span id="form-error-text"></span>
                 </div>
 
-                <div class="section-head" style="margin: -24px -26px 22px; border-radius: 24px 24px 0 0;">
+                <div class="section-head">
                     <span class="section-icon">
                         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0"/></svg>
                     </span>
@@ -455,28 +418,28 @@
                 <form id="gate-form" novalidate>
                     <div class="grid-form">
                         <div class="field">
-                            <label>Nama Lengkap <span class="req">*</span></label>
-                            <input type="text" name="visitor_name" required maxlength="255" placeholder="Nama sesuai identitas">
+                            <label for="visitor-name">Nama Lengkap <span class="req">*</span></label>
+                            <input id="visitor-name" type="text" name="visitor_name" required maxlength="255" autocomplete="name" placeholder="Nama sesuai identitas">
                         </div>
 
                         <div class="field">
-                            <label>Ingin Menemui <span class="req">*</span></label>
-                            <input type="text" name="person_to_meet" required maxlength="255" placeholder="Nama pegawai yang dituju">
+                            <label for="person-to-meet">Ingin Menemui <span class="req">*</span></label>
+                            <input id="person-to-meet" type="text" name="person_to_meet" required maxlength="255" placeholder="Nama pegawai yang dituju">
                         </div>
 
                         <div class="field">
-                            <label>Asal Instansi <span class="req">*</span></label>
-                            <input type="text" name="visitor_institution" required maxlength="255" placeholder="Perusahaan / instansi">
+                            <label for="visitor-institution">Asal Instansi <span class="req">*</span></label>
+                            <input id="visitor-institution" type="text" name="visitor_institution" required maxlength="255" autocomplete="organization" placeholder="Perusahaan / instansi">
                         </div>
 
                         <div class="field">
-                            <label>No. WhatsApp <span class="req">*</span></label>
-                            <input type="tel" name="visitor_phone" required maxlength="20" placeholder="081234567890">
+                            <label for="visitor-phone">No. WhatsApp <span class="req">*</span></label>
+                            <input id="visitor-phone" type="tel" name="visitor_phone" required maxlength="20" autocomplete="tel" inputmode="tel" placeholder="081234567890">
                         </div>
 
                         <div class="field">
-                            <label>NIK (16 Digit) <span class="req">*</span></label>
-                            <input type="text" name="identity_number" required inputmode="numeric" maxlength="16" pattern="[0-9]{16}" placeholder="3174xxxxxxxxxxxx">
+                            <label for="identity-number">NIK (16 Digit) <span class="req">*</span></label>
+                            <input id="identity-number" type="text" name="identity_number" required inputmode="numeric" maxlength="16" pattern="[0-9]{16}" autocomplete="off" placeholder="3174xxxxxxxxxxxx">
                         </div>
 
                         <div class="field">
@@ -500,8 +463,8 @@
                         </div>
 
                         <div class="field full">
-                            <label>Keperluan <span class="req">*</span></label>
-                            <textarea name="purpose" required maxlength="1000" placeholder="Jelaskan keperluan kunjungan Anda"></textarea>
+                            <label for="visit-purpose">Keperluan <span class="req">*</span></label>
+                            <textarea id="visit-purpose" name="purpose" required maxlength="1000" placeholder="Jelaskan keperluan kunjungan Anda"></textarea>
                         </div>
 
                         <div class="field full">
@@ -555,6 +518,8 @@
                 line1.classList.remove('done');
                 dot1.textContent = '1';
                 step2.classList.remove('active');
+                step2.classList.remove('done');
+                document.getElementById('dot-2').textContent = '2';
             }
         }
 
@@ -695,6 +660,7 @@
                 document.getElementById('result').classList.add('show');
                 setStep(true);
                 document.getElementById('step-2').classList.remove('active');
+                document.getElementById('step-2').classList.add('done');
                 document.getElementById('dot-2').textContent = '✓';
             } catch {
                 setStep(false);

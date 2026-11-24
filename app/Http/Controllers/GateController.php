@@ -10,6 +10,7 @@ use App\Services\VisitStatusService;
 use App\Support\PhoneHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -114,6 +115,9 @@ class GateController extends Controller
         $glassQrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(150)
             ->color(9, 26, 58)
             ->generate(route('gate.form'));
+        $activitySince = now()->startOfSecond();
+        $recentActivities = collect();
+        $activityCount = 0;
 
         // Kartu testing: ambil 1 kunjungan gate terakhir yang punya checkout_token,
         // supaya petugas bisa test scan kamera tanpa buka DB/tinker.
@@ -123,12 +127,25 @@ class GateController extends Controller
             $latestTestVisit = Visit::whereNotNull('checkout_token')
                 ->orderByDesc('id')
                 ->first();
+
+            $activitiesQuery = GateLog::with('visit')
+                ->whereDate('created_at', $activitySince->toDateString());
+            $activityCount = (clone $activitiesQuery)->count();
+            $recentActivities = (clone $activitiesQuery)
+                ->orderByDesc('created_at')
+                ->take(5)
+                ->get()
+                ->map(fn (GateLog $log) => $this->formatGateActivity($log));
         } catch (\Throwable $e) {
             return view('gate.scanner', [
                 'glassQrSvg' => $glassQrSvg,
                 'latestTestVisit' => null,
                 'latestTestQrSvg' => null,
                 'dbDown' => true,
+                'recentActivities' => $recentActivities,
+                'activityCount' => $activityCount,
+                'activityDay' => $activitySince->toDateString(),
+                'activitySince' => $activitySince->toISOString(),
             ]);
         }
 
@@ -138,7 +155,60 @@ class GateController extends Controller
                 ->generate($latestTestVisit->checkout_token)
             : null;
 
-        return view('gate.scanner', compact('glassQrSvg', 'latestTestVisit', 'latestTestQrSvg'));
+        return view('gate.scanner', compact(
+            'glassQrSvg',
+            'latestTestVisit',
+            'latestTestQrSvg',
+            'recentActivities',
+            'activityCount',
+            'activityDay',
+            'activitySince'
+        ));
+    }
+
+    /**
+     * Return today's gate activity pages or events created since the last poll.
+     */
+    public function activities(Request $request): JsonResponse
+    {
+        Gate::authorize('is-receptionist-or-admin');
+
+        $data = $request->validate([
+            'day' => ['sometimes', 'date_format:Y-m-d'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'since' => ['sometimes', 'date'],
+        ]);
+        $day = $data['day'] ?? now()->toDateString();
+        $query = GateLog::with('visit')->whereDate('created_at', $day);
+
+        if (isset($data['since'])) {
+            $checkedAt = now()->startOfSecond();
+            $events = (clone $query)
+                ->where('created_at', '>=', Carbon::parse($data['since']))
+                ->orderBy('created_at')
+                ->get()
+                ->map(fn (GateLog $log) => $this->formatGateActivity($log))
+                ->values();
+
+            return response()->json([
+                'items' => $events,
+                'checked_at' => $checkedAt->toISOString(),
+            ]);
+        }
+
+        $activities = $query
+            ->orderByDesc('created_at')
+            ->paginate(25, ['*'], 'page', $data['page'] ?? 1);
+
+        return response()->json([
+            'items' => $activities->getCollection()
+                ->map(fn (GateLog $log) => $this->formatGateActivity($log))
+                ->values(),
+            'current_page' => $activities->currentPage(),
+            'last_page' => $activities->lastPage(),
+            'has_more' => $activities->hasMorePages(),
+            'total' => $activities->total(),
+        ]);
     }
 
     /**
@@ -330,14 +400,33 @@ class GateController extends Controller
     {
         return [
             'id' => $visit->id,
+            'visit_id' => $visit->id,
             'name' => $visit->visitor_name,
             'institution' => $visit->visitor_institution,
             'identity_number' => $visit->identity_number,
             'person_to_meet' => $visit->person_to_meet,
             'check_in' => $visit->check_in_time?->format('H:i'),
             'check_out' => $visit->check_out_time?->format('H:i'),
+            'time' => ($visit->check_out_time ?? $visit->check_in_time)?->format('H:i'),
+            'direction' => $visit->check_out_time ? GateLog::DIRECTION_OUT : GateLog::DIRECTION_IN,
             'duration' => $visit->durationText(),
             'status' => $visit->status,
+        ];
+    }
+
+    protected function formatGateActivity(GateLog $log): array
+    {
+        $direction = $log->direction;
+        $name = $log->visit?->visitor_name ?? 'Data tamu tidak tersedia';
+
+        return [
+            'id' => $log->id,
+            'visit_id' => $log->visit_id,
+            'name' => $name,
+            'direction' => $direction,
+            'label' => $direction === GateLog::DIRECTION_OUT ? 'Checkout' : 'Check-in',
+            'message' => $direction === GateLog::DIRECTION_OUT ? 'Kunjungan selesai' : 'Kedatangan tercatat',
+            'time' => $log->created_at?->format('H:i') ?? '-',
         ];
     }
 }

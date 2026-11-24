@@ -32,6 +32,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/gate/scanner', [GateController::class, 'scanner'])->name('gate.scanner');
     Route::post('/gate/scanner', [GateController::class, 'scan'])->middleware('throttle:30,1')->name('gate.scan');
+    Route::get('/gate/scanner/activities', [GateController::class, 'activities'])->name('gate.activities');
     Route::get('/gate/chat/{visit}', [GateController::class, 'chat'])->name('gate.chat');
     Route::get('/gate-reports', [GateReportController::class, 'index'])->name('gate-reports.index');
     Route::get('/gate-reports/latest', [GateReportController::class, 'latest'])->name('gate-reports.latest');
