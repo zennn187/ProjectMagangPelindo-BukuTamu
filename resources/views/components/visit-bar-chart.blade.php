@@ -26,8 +26,8 @@
         <svg
             class="mx-auto block"
             width="{{ $chartWidth }}"
-            height="176"
-            viewBox="0 0 {{ $chartWidth }} 176"
+            height="160"
+            viewBox="0 0 {{ $chartWidth }} 160"
             role="img"
             aria-label="{{ $ariaLabel }}. Sumbu vertikal menunjukkan jumlah kunjungan."
             xmlns="http://www.w3.org/2000/svg"

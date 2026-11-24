@@ -7,6 +7,7 @@ use App\Models\Visit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -31,18 +32,14 @@ class GateReportController extends Controller
 
         $base = $this->gateQuery($selectedDay, $search);
 
-        $counts = \Illuminate\Support\Facades\Cache::remember(
-            'gate.counts.'.md5($selectedDay.'|'.$search),
-            120,
-            fn () => [
-                'total' => (clone $base)->count(),
-                'inside' => (clone $base)->where('status', Visit::STATUS_ACTIVE)->count(),
-                'completed' => (clone $base)->where('status', Visit::STATUS_COMPLETED)->count(),
-            ]
-        );
+        $counts = [
+            'total' => (clone $base)->count(),
+            'inside' => (clone $base)->where('status', Visit::STATUS_ACTIVE)->count(),
+            'completed' => (clone $base)->where('status', Visit::STATUS_COMPLETED)->count(),
+        ];
 
-        // Average visit duration today (in minutes) — cached, single aggregate query.
-        $avgMinutes = \Illuminate\Support\Facades\Cache::remember(
+        // Average visit duration for the selected day (in minutes) — cached aggregate query.
+        $avgMinutes = Cache::remember(
             'gate.avg.'.md5($selectedDay.'|'.$search),
             120,
             fn () => (clone $base)
@@ -59,7 +56,7 @@ class GateReportController extends Controller
 
         // QR code to be printed and stuck on the security glass — guests scan it
         // to open the gate registration form. Cached: same SVG for 24h.
-        $glassQrSvg = \Illuminate\Support\Facades\Cache::remember(
+        $glassQrSvg = Cache::remember(
             'gate.glass-qr',
             86400,
             fn () => QrCode::size(150)->color(9, 26, 58)->generate(route('gate.form'))
@@ -76,16 +73,34 @@ class GateReportController extends Controller
     {
         Gate::authorize('is-receptionist-or-admin');
 
+        $selectedDay = $request->filled('day')
+            ? $this->safeDay($request->input('day'))
+            : now()->toDateString();
+        $search = trim((string) $request->input('search', ''));
         $since = $request->filled('since')
             ? $this->safeDateTime($request->input('since'))
             : now()->subMinutes(5);
 
-        $visits = $this->gateQuery(now()->toDateString(), '')
+        $query = $this->gateQuery($selectedDay, $search);
+        $counts = [
+            'total' => (clone $query)->count(),
+            'inside' => (clone $query)->where('status', Visit::STATUS_ACTIVE)->count(),
+            'completed' => (clone $query)->where('status', Visit::STATUS_COMPLETED)->count(),
+        ];
+        $visits = (clone $query)
             ->orderBy('check_in_time', 'desc')
-            ->take(20)
-            ->get();
+            ->paginate(10, ['*'], 'page', max(1, (int) $request->input('page', 1)));
 
         $events = Visit::where('source', Visit::SOURCE_GATE)
+            ->whereDate('check_in_time', $selectedDay)
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($inner) use ($search) {
+                    $inner->where('visitor_name', 'like', "%{$search}%")
+                        ->orWhere('identity_number', 'like', "%{$search}%")
+                        ->orWhere('visitor_institution', 'like', "%{$search}%")
+                        ->orWhere('person_to_meet', 'like', "%{$search}%");
+                });
+            })
             ->where(function ($q) use ($since) {
                 $q->where('updated_at', '>=', $since)->orWhere('created_at', '>=', $since);
             })
@@ -106,10 +121,7 @@ class GateReportController extends Controller
 
         return response()->json([
             'server_time' => now()->format('H:i:s'),
-            'counts' => [
-                'inside' => Visit::where('source', Visit::SOURCE_GATE)->whereDate('check_in_time', today())->where('status', Visit::STATUS_ACTIVE)->count(),
-                'completed' => Visit::where('source', Visit::SOURCE_GATE)->whereDate('check_in_time', today())->where('status', Visit::STATUS_COMPLETED)->count(),
-            ],
+            'counts' => $counts,
             'visits' => $visits->map(fn (Visit $v) => [
                 'id' => $v->id,
                 'name' => $v->visitor_name,
@@ -120,6 +132,7 @@ class GateReportController extends Controller
                 'check_out' => $v->check_out_time?->format('H:i'),
                 'duration' => $v->durationText(),
                 'status' => $v->status,
+                'chat_url' => $v->visitor_phone ? route('gate.chat', $v) : null,
             ]),
             'events' => $events,
             'last_updated_at' => now()->toISOString(),

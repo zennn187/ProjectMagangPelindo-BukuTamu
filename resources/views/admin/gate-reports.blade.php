@@ -22,7 +22,7 @@
         <div class="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-bank-light/70">
             <div class="flex items-center justify-center h-11 w-11 rounded-full bg-blue-50 text-blue-600 text-lg">👥</div>
             <p class="mt-4 text-sm font-medium text-bank-gray">Total Tamu</p>
-            <p class="mt-1 text-2xl font-bold text-bank-navy">{{ $counts['total'] }}</p>
+            <p class="mt-1 text-2xl font-bold text-bank-navy" id="stat-total">{{ $counts['total'] }}</p>
         </div>
         <div class="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-bank-light/70">
             <div class="flex items-center justify-center h-11 w-11 rounded-full bg-sky-50 text-sky-600 text-lg">🧍</div>
@@ -125,16 +125,65 @@
         }
 
         function updateRow(v) {
-            const row = document.querySelector(`#report-rows tr[data-visit-id="${v.id}"]`);
-            if (!row) return;
-            const outCell = row.querySelector('[data-cell="check_out"]');
-            const durCell = row.querySelector('[data-cell="duration"]');
-            const statusCell = row.querySelector('[data-cell="status"]');
-            if (v.check_out && outCell) outCell.textContent = v.check_out;
-            if (v.duration && durCell) durCell.textContent = v.duration;
-            if (v.check_out && statusCell) {
-                statusCell.innerHTML = '<span class="inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold bg-emerald-100 text-emerald-700">Selesai</span>';
+            const row = document.createElement('tr');
+            row.className = 'border-b border-bank-light/60';
+
+            const addCell = (value, className, fallback = '—') => {
+                const cell = document.createElement('td');
+                cell.className = className;
+                cell.textContent = value || fallback;
+                row.append(cell);
+                return cell;
+            };
+
+            addCell(v.name, 'py-3 pr-4 font-semibold text-bank-navy whitespace-nowrap', '');
+            addCell(v.identity, 'py-3 pr-4 text-bank-gray');
+            addCell(v.institution, 'py-3 pr-4 text-bank-gray');
+            addCell(v.person_to_meet, 'py-3 pr-4 text-bank-gray');
+            addCell(v.check_in, 'py-3 pr-4 text-bank-gray whitespace-nowrap');
+            addCell(v.check_out, 'py-3 pr-4 text-bank-gray whitespace-nowrap');
+            addCell(v.duration, 'py-3 pr-4 text-bank-gray whitespace-nowrap');
+
+            const statusCell = document.createElement('td');
+            statusCell.className = 'py-3';
+            const status = document.createElement('span');
+            const completed = v.status === 'completed';
+            status.className = 'inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ' +
+                (completed ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700');
+            status.textContent = completed ? 'Selesai' : 'Di Dalam';
+            statusCell.append(status);
+            row.append(statusCell);
+
+            const actionCell = document.createElement('td');
+            actionCell.className = 'py-3';
+            if (v.chat_url) {
+                const link = document.createElement('a');
+                link.href = v.chat_url;
+                link.className = 'inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100 transition-colors whitespace-nowrap';
+                link.textContent = 'Chat WA';
+                actionCell.append(link);
+            } else {
+                actionCell.textContent = '—';
+                actionCell.className += ' text-[11px] text-bank-gray';
             }
+            row.append(actionCell);
+            return row;
+        }
+
+        function renderVisits(visits) {
+            const tbody = document.getElementById('report-rows');
+            if (!visits.length) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 9;
+                cell.className = 'py-10 text-center text-bank-gray';
+                cell.textContent = 'Belum ada tamu yang terdaftar pada tanggal ini.';
+                row.append(cell);
+                tbody.replaceChildren(row);
+                return;
+            }
+
+            tbody.replaceChildren(...visits.map(updateRow));
         }
 
         async function poll() {
@@ -143,7 +192,9 @@
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000);
-                const res = await fetch(`{{ route('gate-reports.latest') }}?since=${encodeURIComponent(lastPoll)}`, {
+                const params = new URLSearchParams(window.location.search);
+                params.set('since', lastPoll);
+                const res = await fetch(`{{ route('gate-reports.latest') }}?${params.toString()}`, {
                     headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
                     signal: controller.signal,
                 });
@@ -152,8 +203,10 @@
                 const data = await res.json();
                 lastPoll = data.last_updated_at;
 
+                const totalEl = document.getElementById('stat-total');
                 const insideEl = document.getElementById('stat-inside');
                 const completedEl = document.getElementById('stat-completed');
+                if (totalEl) totalEl.textContent = data.counts.total;
                 if (insideEl) insideEl.textContent = data.counts.inside;
                 if (completedEl) completedEl.textContent = data.counts.completed;
 
@@ -163,7 +216,9 @@
                     pushNotif(evt);
                 });
 
-                data.visits.forEach(updateRow);
+                renderVisits(data.visits);
+                const pollStatus = document.getElementById('poll-status');
+                if (pollStatus) pollStatus.textContent = 'aktif';
             } catch (e) {
                 if (e?.name === 'AbortError') { poll.running = false; return; }
                 const s = document.getElementById('poll-status');

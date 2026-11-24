@@ -23,7 +23,11 @@
             'meeting_invitation' => 'Undangan Rapat / Kegiatan',
         ];
         $prefLabel = ['hand_in' => 'Diantar langsung ke yang dituju', 'leave' => 'Dititipkan ke resepsionis'];
-        $maxWeekly = $weekly->max('total') ?: 1;
+        $openVisitStatusLabel = [
+            'pending' => 'Belum direspons',
+            'waiting' => 'Sudah direspons · menunggu',
+            'active' => 'Sudah check-in · belum check-out',
+        ];
         $cards = [
             ['status' => 'pending', 'label' => 'Menunggu Verifikasi', 'value' => $counts['pending'], 'icon' => '⏳'],
             ['status' => 'waiting', 'label' => 'Disuruh Menunggu', 'value' => $counts['waiting'], 'icon' => '🕐'],
@@ -51,8 +55,9 @@
     <div class="grid lg:grid-cols-3 gap-4 sm:gap-5 mb-6">
         <div class="lg:col-span-2">
             <x-visit-particle-chart
-                :data="$weekly->map(fn ($day) => ['label' => $day['label'], 'value' => $day['total'], 'date' => $day['label']])"
-                aria-label="Jumlah kunjungan per hari selama tujuh hari terakhir"
+                :data="$monthly"
+                :active-week="$chartWeek"
+                aria-label="Jumlah kunjungan per hari pada minggu bulan ini"
             />
         </div>
 
@@ -81,6 +86,97 @@
             </ul>
         </div>
     </div>
+
+    <section id="open-visits" class="mb-6 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-bank-light/70" aria-labelledby="open-visits-heading">
+        <div class="flex flex-wrap items-start justify-between gap-3 px-5 py-5 sm:px-6">
+            <div>
+                <h2 id="open-visits-heading" class="font-semibold text-bank-navy">Antrean Kunjungan Belum Selesai</h2>
+                <p class="mt-1 text-xs text-bank-gray">Semua tanggal · tetap tercatat sampai kunjungan selesai atau ditolak.</p>
+            </div>
+            <span class="text-sm font-semibold text-bank-navy">
+                <span id="open-visit-total" data-count="{{ $openVisitCounts['total'] }}">{{ number_format($openVisitCounts['total']) }}</span>
+                belum selesai
+            </span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 px-5 pb-4 sm:gap-3 sm:px-6">
+            @foreach([
+                'pending' => 'Belum direspons',
+                'waiting' => 'Menunggu',
+                'active' => 'Sedang di dalam',
+            ] as $status => $label)
+                <div class="rounded-xl bg-bank-bg px-3 py-2.5">
+                    <p class="text-[11px] leading-4 text-bank-gray">{{ $label }}</p>
+                    <p class="mt-1 text-lg font-semibold leading-5 text-bank-navy" data-open-status-count="{{ $status }}" data-count="{{ $openVisitCounts[$status] }}">
+                        {{ number_format($openVisitCounts[$status]) }}
+                    </p>
+                </div>
+            @endforeach
+        </div>
+
+        <ul id="open-visit-list" class="divide-y divide-bank-light">
+            @forelse($openVisits as $openVisit)
+                @php
+                    $openPhotoUrl = ($openVisit->photo_exists || ($openVisit->photo_path && Storage::disk('public')->exists($openVisit->photo_path)))
+                        ? route('visits.photo', ['visit' => $openVisit], false)
+                        : '';
+                @endphp
+                <li
+                    class="flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-6"
+                    data-open-visit-id="{{ $openVisit->id }}"
+                    data-open-status="{{ $openVisit->status }}"
+                >
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <p class="truncate text-sm font-semibold text-bank-navy">{{ $openVisit->visitor_name }}</p>
+                            <span class="open-visit-status rounded-full bg-bank-bg px-2.5 py-1 text-[11px] font-medium text-bank-navy" data-open-status-label>
+                                {{ $openVisitStatusLabel[$openVisit->status] ?? $openVisit->status }}
+                            </span>
+                        </div>
+                        <p class="mt-1 truncate text-xs text-bank-gray">
+                            {{ $openVisit->visitor_institution ?: 'Instansi tidak dicantumkan' }}
+                            · ke {{ $openVisit->employee->name ?? '—' }}
+                        </p>
+                        <p class="mt-1 text-xs text-bank-gray">
+                            Masuk {{ $openVisit->created_at->format('d M Y, H:i') }}
+                            · {{ $openVisit->purpose }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        data-visit-id="{{ $openVisit->id }}"
+                        data-visitor-name="{{ $openVisit->visitor_name }}"
+                        data-visitor-institution="{{ $openVisit->visitor_institution }}"
+                        data-visitor-phone="{{ $openVisit->visitor_phone }}"
+                        data-purpose="{{ $openVisit->purpose }}"
+                        data-status="{{ $openVisit->status }}"
+                        data-employee-name="{{ $openVisit->employee->name ?? '—' }}"
+                        data-visit-type="{{ $openVisit->visit_type }}"
+                        data-photo-url="{{ $openPhotoUrl }}"
+                        class="detail-visit-btn inline-flex min-h-10 items-center justify-center rounded-xl bg-bank-blue px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bank-blue"
+                    >Detail &amp; proses</button>
+                </li>
+            @empty
+                @if($openVisits->total() === 0)
+                    <li class="px-5 py-8 text-center text-sm text-bank-gray sm:px-6" id="open-visit-empty">
+                        Semua kunjungan sudah selesai atau ditolak.
+                    </li>
+                @endif
+            @endforelse
+        </ul>
+
+        @if($openVisits->isEmpty() && $openVisits->total() > 0)
+            <p class="px-5 py-8 text-center text-sm text-bank-gray sm:px-6" id="open-visit-empty">
+                Tidak ada antrean pada halaman ini. Gunakan navigasi halaman untuk melihat antrean lain.
+            </p>
+        @endif
+
+        @if($openVisits->hasPages())
+            <div class="border-t border-bank-light px-5 py-3 sm:px-6">
+                {{ $openVisits->links() }}
+            </div>
+        @endif
+    </section>
 
     <div class="bg-white rounded-3xl overflow-hidden shadow-sm ring-1 ring-bank-light/70">
         <div class="px-5 sm:px-6 py-5 flex flex-wrap items-center justify-between gap-3">
@@ -483,6 +579,8 @@
                 const openVisitDetail = (visit) => {
                     if (!visit) return;
 
+                    detailModal.dataset.visitId = String(visit.id);
+                    detailModal.dataset.visitStatus = visit.status || '';
                     const photo = visit.photo_url || '';
                     detailModalImage.src = photo;
                     detailModalImage.classList.toggle('hidden', !photo);
@@ -626,6 +724,66 @@
                     rejected: 'Ditolak',
                 };
 
+                const openVisitStatusLabel = {
+                    pending: 'Belum direspons',
+                    waiting: 'Sudah direspons · menunggu',
+                    active: 'Sudah check-in · belum check-out',
+                };
+                const unresolvedStatuses = ['pending', 'waiting', 'active'];
+
+                const updateOpenVisitQueue = (visitId, previousStatus, nextStatus) => {
+                    const wasUnresolved = unresolvedStatuses.includes(previousStatus);
+                    const isUnresolved = unresolvedStatuses.includes(nextStatus);
+                    const queueTotal = document.getElementById('open-visit-total');
+
+                    if (previousStatus !== nextStatus) {
+                        const adjustCount = (status, amount) => {
+                            const count = document.querySelector(`[data-open-status-count="${status}"]`);
+                            if (!count) return;
+
+                            const nextCount = Math.max(0, Number(count.dataset.count || 0) + amount);
+                            count.dataset.count = String(nextCount);
+                            count.textContent = nextCount.toLocaleString('id-ID');
+                        };
+
+                        if (wasUnresolved) adjustCount(previousStatus, -1);
+                        if (isUnresolved) adjustCount(nextStatus, 1);
+
+                        if (queueTotal && wasUnresolved !== isUnresolved) {
+                            const nextTotal = Math.max(0, Number(queueTotal.dataset.count || 0) + (isUnresolved ? 1 : -1));
+                            queueTotal.dataset.count = String(nextTotal);
+                            queueTotal.textContent = nextTotal.toLocaleString('id-ID');
+                        }
+                    }
+
+                    const row = Array.from(document.querySelectorAll('[data-open-visit-id]'))
+                        .find((item) => item.dataset.openVisitId === String(visitId));
+                    if (row && isUnresolved) {
+                        row.dataset.openStatus = nextStatus;
+                        const label = row.querySelector('[data-open-status-label]');
+                        if (label) label.textContent = openVisitStatusLabel[nextStatus] || nextStatus;
+                    } else if (row) {
+                        row.remove();
+                    }
+
+                    const list = document.getElementById('open-visit-list');
+                    if (list && !list.querySelector('[data-open-visit-id]')) {
+                        let empty = document.getElementById('open-visit-empty');
+                        if (!empty || !list.contains(empty)) {
+                            empty = document.createElement('li');
+                            empty.id = 'open-visit-empty';
+                            empty.className = 'px-5 py-8 text-center text-sm text-bank-gray sm:px-6';
+                            list.appendChild(empty);
+                        }
+
+                        if (Number(queueTotal?.dataset.count || 0) === 0) {
+                            empty.textContent = 'Semua kunjungan sudah selesai atau ditolak.';
+                        } else {
+                            empty.textContent = 'Antrean halaman ini berubah. Muat ulang dashboard untuk melihat antrean berikutnya.';
+                        }
+                    }
+                };
+
                 const typeLabel = {
                     meet: 'Kunjungan',
                     deliver: 'Pengantaran Surat',
@@ -761,6 +919,14 @@
 
                         if (result.visit_id && result.status) {
                             lastVisitStates.set(String(result.visit_id), result.status);
+                            updateOpenVisitQueue(
+                                result.visit_id,
+                                detailModal?.dataset.visitStatus || '',
+                                result.status
+                            );
+                            if (detailModal?.dataset.visitId === String(result.visit_id)) {
+                                detailModal.dataset.visitStatus = result.status;
+                            }
                         }
 
                         if (detailModal && !detailModal.classList.contains('hidden')) {

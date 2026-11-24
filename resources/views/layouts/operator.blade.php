@@ -72,19 +72,22 @@
                     @php
                         $bankMenu = fn (string $label, bool $active) => 'relative flex items-center py-3 pr-3 text-sm font-medium transition-colors group ' . ($active ? 'text-bank-blue' : 'text-bank-gray hover:text-bank-navy');
                         $bankBar  = fn (bool $active) => 'absolute left-0 top-1 bottom-1 w-1 rounded-r-full ' . ($active ? 'bg-bank-blue' : 'bg-transparent group-hover:bg-bank-light');
+                        $queueActive = request()->routeIs('dashboard') && request()->query('section') === 'antrean';
+                        $dashboardActive = request()->routeIs('dashboard') && ! $queueActive;
                     @endphp
 
-                    <a href="{{ route('dashboard') }}" class="{{ $bankMenu('Dashboard', request()->routeIs('dashboard')) }}"><span class="{{ $bankBar(request()->routeIs('dashboard')) }}"></span><span class="pl-6">Dashboard</span></a>
+                    <a href="{{ route('dashboard') }}" class="{{ $bankMenu('Dashboard', $dashboardActive) }}"><span class="{{ $bankBar($dashboardActive) }}"></span><span class="pl-6">Dashboard</span></a>
+                    <a href="{{ route('dashboard', ['section' => 'antrean']) }}#open-visits" class="{{ $bankMenu('Antrean Kunjungan', $queueActive) }}"><span class="{{ $bankBar($queueActive) }}"></span><span class="pl-6">Antrean Kunjungan</span></a>
                     <a href="{{ route('gate.scanner') }}" class="{{ $bankMenu('Scanner Gate', request()->routeIs('gate.scanner') || request()->routeIs('gate.scan')) }}"><span class="{{ $bankBar(request()->routeIs('gate.scanner') || request()->routeIs('gate.scan')) }}"></span><span class="pl-6">Scanner Gate</span></a>
                     <a href="{{ route('gate-reports.index') }}" class="{{ $bankMenu('Kedatangan Tamu', request()->routeIs('gate-reports*')) }}"><span class="{{ $bankBar(request()->routeIs('gate-reports*')) }}"></span><span class="pl-6">Kedatangan Tamu</span></a>
 
                     @if(auth()->user()->isAdmin())
+                        <a href="{{ route('admin.users.index') }}" class="{{ $bankMenu('Pengguna', request()->routeIs('admin.users*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.users*')) }}"></span><span class="pl-6">Pengguna</span></a>
+                        <a href="{{ route('admin.status-history.index') }}" class="{{ $bankMenu('Riwayat Status', request()->routeIs('admin.status-history*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.status-history*')) }}"></span><span class="pl-6">Riwayat Status</span></a>
+                        <a href="{{ route('admin.reports.index') }}" class="{{ $bankMenu('Laporan', request()->routeIs('admin.reports*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.reports*')) }}"></span><span class="pl-6">Laporan</span></a>
+                        <a href="{{ route('admin.data.index') }}" class="{{ $bankMenu('Pengelolaan Data', request()->routeIs('admin.data*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.data*')) }}"></span><span class="pl-6">Pengelolaan Data</span></a>
                         <a href="{{ route('admin.employees.index') }}" class="{{ $bankMenu('Pegawai', request()->routeIs('admin.employees*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.employees*')) }}"></span><span class="pl-6">Pegawai</span></a>
                         <a href="{{ route('admin.blacklists.index') }}" class="{{ $bankMenu('Daftar Hitam', request()->routeIs('admin.blacklists*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.blacklists*')) }}"></span><span class="pl-6">Daftar Hitam</span></a>
-                        <a href="{{ route('admin.users.index') }}" class="{{ $bankMenu('Pengguna', request()->routeIs('admin.users*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.users*')) }}"></span><span class="pl-6">Pengguna</span></a>
-                        <a href="{{ route('admin.reports.index') }}" class="{{ $bankMenu('Laporan', request()->routeIs('admin.reports*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.reports*')) }}"></span><span class="pl-6">Laporan</span></a>
-                        <a href="{{ route('admin.status-history.index') }}" class="{{ $bankMenu('Riwayat Status', request()->routeIs('admin.status-history*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.status-history*')) }}"></span><span class="pl-6">Riwayat Status</span></a>
-                        <a href="{{ route('admin.data.index') }}" class="{{ $bankMenu('Pengelolaan Data', request()->routeIs('admin.data*')) }}"><span class="{{ $bankBar(request()->routeIs('admin.data*')) }}"></span><span class="pl-6">Pengelolaan Data</span></a>
                     @endif
 
                     <a href="{{ route('profile.edit') }}" class="{{ $bankMenu('Setting', request()->routeIs('profile*')) }}"><span class="{{ $bankBar(request()->routeIs('profile*')) }}"></span><span class="pl-6">Setting</span></a>

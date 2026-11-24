@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\VisitsExport;
 use App\Http\Controllers\Controller;
+use App\Models\Visit;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
@@ -20,58 +22,68 @@ class ReportController extends Controller
     {
         Gate::authorize('is-admin');
 
-        $from = $request->filled('from') ? $request->date('from') : Carbon::today();
-        $to = $request->filled('to') ? $request->date('to') : Carbon::today();
+        $periods = $this->periods();
+        $range = $this->resolveRange($request, $periods);
+        $from = $range['from'];
+        $to = $range['to'];
+        $selectedPeriod = $range['period'];
 
-        if ($from->greaterThan($to)) {
-            [$from, $to] = [$to, $from];
-        }
+        $baseQuery = Visit::query()
+            ->whereBetween('created_at', [$from, $to]);
 
-        if (! $request->filled('from') && ! $request->filled('to')) {
-            $from = Carbon::today();
-            $to = Carbon::today();
-        }
+        $row = (clone $baseQuery)
+            ->selectRaw(
+                'COUNT(*) as total, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as active, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed',
+                [
+                    Visit::STATUS_PENDING,
+                    Visit::STATUS_ACTIVE,
+                    Visit::STATUS_COMPLETED,
+                ]
+            )
+            ->first();
 
-        $baseQuery = \App\Models\Visit::query()->whereBetween('created_at', [$from->startOfDay(), $to->endOfDay()]);
+        $summary = [
+            'total' => (int) ($row->total ?? 0),
+            'pending' => (int) ($row->pending ?? 0),
+            'active' => (int) ($row->active ?? 0),
+            'completed' => (int) ($row->completed ?? 0),
+        ];
 
-        // Satu query aggregate untuk semua ringkasan (bukan 4 query count terpisah),
-        // di-cache per rentang tanggal agar navigasi antar-menu tidak query ulang.
-        $cacheKey = 'reports.summary.'.$from->toDateString().'.'.$to->toDateString();
-
-        $summary = \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($baseQuery) {
-            $row = (clone $baseQuery)
-                ->selectRaw(
-                    'COUNT(*) as total, SUM(status = ?) as pending, SUM(status = ?) as active, SUM(status = ?) as completed',
-                    [\App\Models\Visit::STATUS_PENDING, \App\Models\Visit::STATUS_ACTIVE, \App\Models\Visit::STATUS_COMPLETED]
-                )
-                ->first();
-
-            return [
-                'total' => (int) ($row->total ?? 0),
-                'pending' => (int) ($row->pending ?? 0),
-                'active' => (int) ($row->active ?? 0),
-                'completed' => (int) ($row->completed ?? 0),
-            ];
-        });
-
-        // Chart harian: satu query GROUP BY (sebelumnya N query count — satu per hari).
-        $countsByDay = \Illuminate\Support\Facades\Cache::remember($cacheKey.'.chart', 60, function () use ($baseQuery) {
-            return (clone $baseQuery)
-                ->selectRaw('DATE(created_at) as day, COUNT(*) as total')
-                ->groupByRaw('DATE(created_at)')
-                ->pluck('total', 'day');
-        });
+        $countsByDay = (clone $baseQuery)
+            ->selectRaw('DATE(created_at) as day, COUNT(*) as total')
+            ->groupByRaw('DATE(created_at)')
+            ->pluck('total', 'day');
 
         $chartData = collect();
 
-        $period = \Carbon\CarbonPeriod::create($from->copy()->startOfDay(), '1 day', $to->copy()->startOfDay());
-        foreach ($period as $date) {
+        $days = CarbonPeriod::create($from->copy()->startOfDay(), '1 day', $to->copy()->startOfDay());
+        foreach ($days as $date) {
             $chartData->push([
                 'label' => $date->translatedFormat('d'),
                 'value' => (int) ($countsByDay[$date->toDateString()] ?? 0),
                 'date' => $date->toDateString(),
             ]);
         }
+
+        $periodCards = collect($periods)->map(function (array $period) {
+            $periodStart = $period['from']->copy()->startOfDay();
+            $periodEnd = $period['to']->copy()->endOfDay();
+
+            return [
+                ...$period,
+                'total' => Visit::query()
+                    ->whereBetween('created_at', [$periodStart, $periodEnd])
+                    ->count(),
+            ];
+        });
+
+        $visits = Visit::query()
+            ->with('employee')
+            ->withExists('photo')
+            ->whereBetween('created_at', [$from, $to])
+            ->orderByDesc('created_at')
+            ->paginate(15)
+            ->withQueryString();
 
         if ($chartData->isEmpty()) {
             $chartData->push([
@@ -83,7 +95,16 @@ class ReportController extends Controller
 
         $chartMax = $chartData->max('value') ?: 1;
 
-        return view('admin.reports.index', compact('from', 'to', 'summary', 'chartData', 'chartMax'));
+        return view('admin.reports.index', compact(
+            'from',
+            'to',
+            'summary',
+            'chartData',
+            'chartMax',
+            'periodCards',
+            'selectedPeriod',
+            'visits',
+        ));
     }
 
     /**
@@ -93,12 +114,81 @@ class ReportController extends Controller
     {
         Gate::authorize('is-admin');
 
-        $from = $request->date('from');
-        $to = $request->date('to');
+        $range = $this->resolveRange($request, $this->periods());
+        $from = $range['from'];
+        $to = $range['to'];
 
         return Excel::download(
             new VisitsExport($from, $to),
-            'laporan-kunjungan-'.Carbon::now()->format('Ymd-His').'.xlsx'
+            'laporan-kunjungan-'.$from->toDateString().'-sampai-'.$to->toDateString().'-'.Carbon::now()->format('Ymd-His').'.xlsx'
         );
+    }
+
+    /**
+     * @return array<string, array{code: string, label: string, from: Carbon, to: Carbon}>
+     */
+    private function periods(): array
+    {
+        $today = Carbon::today();
+
+        return [
+            'week' => [
+                'code' => '1W',
+                'label' => 'Seminggu Terakhir',
+                'from' => $today->copy()->subDays(6),
+                'to' => $today->copy(),
+            ],
+            'month' => [
+                'code' => '1M',
+                'label' => 'Sebulan Terakhir',
+                'from' => $today->copy()->subMonthNoOverflow(),
+                'to' => $today->copy(),
+            ],
+            'six_months' => [
+                'code' => '6M',
+                'label' => '6 Bulan Terakhir',
+                'from' => $today->copy()->subMonthsNoOverflow(6),
+                'to' => $today->copy(),
+            ],
+            'year' => [
+                'code' => '1Y',
+                'label' => 'Setahun Terakhir',
+                'from' => $today->copy()->subMonthsNoOverflow(12),
+                'to' => $today->copy(),
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, array{code: string, label: string, from: Carbon, to: Carbon}>  $periods
+     * @return array{from: Carbon, to: Carbon, period: ?string}
+     */
+    private function resolveRange(Request $request, array $periods): array
+    {
+        $selectedPeriod = null;
+
+        if (! $request->filled('from') && ! $request->filled('to')) {
+            $requestedPeriod = (string) $request->input('period', '');
+            if (isset($periods[$requestedPeriod])) {
+                $selectedPeriod = $requestedPeriod;
+                $from = $periods[$requestedPeriod]['from']->copy();
+                $to = $periods[$requestedPeriod]['to']->copy();
+            }
+        }
+
+        if (! isset($from, $to)) {
+            $from = $request->filled('from') ? $request->date('from') : Carbon::today();
+            $to = $request->filled('to') ? $request->date('to') : Carbon::today();
+        }
+
+        if ($from->greaterThan($to)) {
+            [$from, $to] = [$to, $from];
+        }
+
+        return [
+            'from' => $from->startOfDay(),
+            'to' => $to->endOfDay(),
+            'period' => $selectedPeriod,
+        ];
     }
 }

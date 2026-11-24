@@ -9,7 +9,7 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
-class VisitsExport implements FromQuery, WithHeadings, WithMapping, WithChunkReading
+class VisitsExport implements FromQuery, WithChunkReading, WithHeadings, WithMapping
 {
     protected ?Carbon $from;
 
@@ -44,6 +44,7 @@ class VisitsExport implements FromQuery, WithHeadings, WithMapping, WithChunkRea
             'Tanggal',
             'Nama Tamu',
             'Telepon',
+            'No. Identitas',
             'Instansi',
             'Pegawai Tujuan',
             'Jenis Kunjungan',
@@ -60,8 +61,9 @@ class VisitsExport implements FromQuery, WithHeadings, WithMapping, WithChunkRea
             $visit->created_at?->format('d/m/Y H:i'),
             $visit->visitor_name,
             $visit->visitor_phone,
+            $visit->identity_number ?? '-',
             $visit->visitor_institution,
-            $visit->employee?->name ?? '-',
+            $visit->employee?->name ?? $visit->person_to_meet ?? '-',
             match ($visit->visit_type) {
                 Visit::TYPE_DELIVER => 'Pengantaran Surat',
                 Visit::TYPE_MEETING_INVITATION => 'Undangan Rapat / Kegiatan',

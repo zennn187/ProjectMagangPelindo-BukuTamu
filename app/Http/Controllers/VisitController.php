@@ -24,6 +24,10 @@ class VisitController extends Controller
 
         $selectedDay = $request->filled('day') ? $this->safeDay($request->input('day')) : now()->toDateString();
         $search = trim((string) $request->input('search', ''));
+        $maxChartWeek = now()->daysInMonth > 28 ? 5 : 4;
+        $chartWeek = filter_var($request->query('chart_week'), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => $maxChartWeek],
+        ]) ?: min($maxChartWeek, (int) ceil(now()->day / 7));
 
         $query = Visit::with('employee')->withExists('photo')->forDay($selectedDay)->search($search);
 
@@ -31,26 +35,41 @@ class VisitController extends Controller
 
         $counts = $this->dashboardCounts($selectedDay, $search);
 
-        $weekly = Cache::remember('dashboard.weekly', 300, function () {
+        $openVisitStatuses = [Visit::STATUS_PENDING, Visit::STATUS_WAITING, Visit::STATUS_ACTIVE];
+        $openVisits = Visit::with('employee')->withExists('photo')
+            ->whereIn('status', $openVisitStatuses)
+            ->orderBy('created_at')
+            ->paginate(10, ['*'], 'open_page')
+            ->appends($request->query());
+        $openVisitStatusCounts = Visit::query()
+            ->whereIn('status', $openVisitStatuses)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+        $openVisitCounts = [
+            'pending' => (int) ($openVisitStatusCounts[Visit::STATUS_PENDING] ?? 0),
+            'waiting' => (int) ($openVisitStatusCounts[Visit::STATUS_WAITING] ?? 0),
+            'active' => (int) ($openVisitStatusCounts[Visit::STATUS_ACTIVE] ?? 0),
+        ];
+        $openVisitCounts['total'] = array_sum($openVisitCounts);
+
+        $monthStart = now()->startOfMonth();
+        $monthly = Cache::remember('dashboard.monthly.'.$monthStart->format('Y-m'), 300, function () use ($monthStart) {
+            $monthEnd = $monthStart->copy()->endOfMonth();
             $rows = Visit::query()
-                ->selectRaw('DATE(created_at) as d, COUNT(*) as total, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed', [Visit::STATUS_COMPLETED])
-                ->where('created_at', '>=', now()->subDays(6)->startOfDay())
+                ->selectRaw('DATE(created_at) as d, COUNT(*) as total')
+                ->whereBetween('created_at', [$monthStart, $monthEnd])
                 ->groupBy('d')
                 ->pluck('total', 'd');
 
-            $rowsCompleted = Visit::query()
-                ->selectRaw('DATE(created_at) as d, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed', [Visit::STATUS_COMPLETED])
-                ->where('created_at', '>=', now()->subDays(6)->startOfDay())
-                ->groupBy('d')
-                ->pluck('completed', 'd');
-
-            return collect(range(6, 0))->map(function (int $i) use ($rows, $rowsCompleted) {
-                $day = now()->subDays($i);
+            return collect(range(1, $monthEnd->day))->map(function (int $dayNumber) use ($monthStart, $rows) {
+                $day = $monthStart->copy()->day($dayNumber);
 
                 return [
+                    'date' => $day->toDateString(),
+                    'day' => $dayNumber,
                     'label' => $day->translatedFormat('D'),
                     'total' => (int) ($rows[$day->toDateString()] ?? 0),
-                    'completed' => (int) ($rowsCompleted[$day->toDateString()] ?? 0),
                 ];
             });
         });
@@ -61,7 +80,17 @@ class VisitController extends Controller
             ->take(5)
             ->get();
 
-        return view('reception.dashboard', compact('visits', 'counts', 'weekly', 'recentVisits', 'selectedDay', 'search'));
+        return view('reception.dashboard', compact(
+            'visits',
+            'counts',
+            'monthly',
+            'recentVisits',
+            'selectedDay',
+            'search',
+            'chartWeek',
+            'openVisits',
+            'openVisitCounts'
+        ));
     }
 
     /**
