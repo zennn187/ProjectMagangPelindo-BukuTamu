@@ -15,6 +15,7 @@ use App\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [KioskController::class, 'index'])->name('kiosk');
+Route::get('/kiosk/employees', [KioskController::class, 'employees'])->middleware('throttle:60,1')->name('kiosk.employees');
 Route::view('/welcome', 'welcome')->name('welcome');
 Route::view('/landing', 'welcome')->name('landing');
 Route::get('/privasi', PrivacyController::class)->name('privacy');

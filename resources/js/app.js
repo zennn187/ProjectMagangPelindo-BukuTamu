@@ -6,6 +6,60 @@ import Lenis from 'lenis';
 window.Alpine = Alpine;
 Alpine.start();
 
+const showPageSkeleton = (skeleton) => {
+    if (!skeleton) return;
+
+    if (skeleton.dataset.pageSkeleton === 'kiosk') {
+        skeleton.classList.remove('is-hidden');
+    } else {
+        skeleton.hidden = false;
+    }
+
+    skeleton.setAttribute('aria-hidden', 'false');
+};
+
+document.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (!(event.target instanceof Element)) return;
+
+    const link = event.target.closest('a[href]');
+    if (!link || link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
+
+    const destination = new URL(link.href, window.location.href);
+    const current = new URL(window.location.href);
+    if (destination.origin !== current.origin) return;
+
+    destination.hash = '';
+    current.hash = '';
+    if (destination.href === current.href) return;
+
+    let skeleton = null;
+    if (destination.pathname === '/dashboard') {
+        skeleton = document.querySelector('[data-page-skeleton="dashboard"]');
+    } else if (destination.pathname === '/') {
+        skeleton = document.querySelector('[data-page-skeleton="kiosk"]');
+    }
+
+    if (!skeleton) return;
+
+    showPageSkeleton(skeleton);
+});
+
+document.addEventListener('submit', (event) => {
+    if (event.defaultPrevented || !(event.target instanceof HTMLFormElement)) return;
+
+    const form = event.target;
+    if (form.method.toLowerCase() !== 'get') return;
+
+    const destination = new URL(form.action, window.location.href);
+    if (destination.origin !== window.location.origin || destination.pathname !== '/dashboard') return;
+
+    const skeleton = document.querySelector('[data-page-skeleton="dashboard"]');
+    if (!skeleton) return;
+
+    showPageSkeleton(skeleton);
+});
+
 const createToast = ({ title, description, variant = 'default', duration = 3200, action = null }) => {
     const container = document.getElementById('toast-container');
     if (!container) return;

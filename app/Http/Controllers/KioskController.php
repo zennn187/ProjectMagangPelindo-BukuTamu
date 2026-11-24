@@ -9,6 +9,8 @@ use App\Models\Visit;
 use App\Services\PhotoService;
 use App\Support\PhoneHelper;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -22,27 +24,44 @@ class KioskController extends Controller
      */
     public function index(): View
     {
-        // Guard: jangan gantung halaman kiosk bila MySQL lambat/lock.
-        // Fallback ke daftar kosong agar form tetap bisa dibuka.
-        // (PDO MySQL 127.0.0.1 tanpa timeout bisa diam selamanya bila server macet,
-        //  jadi baca via koneksi cepat-gagal; gagal = tampilkan form tanpa dropdown.)
-        $databaseAvailable = false;
-        try {
-            config(['database.connections.mysql.options' => [\PDO::ATTR_TIMEOUT => 2]]);
-            DB::connection()->getPdo();
-            $employees = \Illuminate\Support\Facades\Cache::remember('employees.active', 3600, fn () => Employee::active()->orderBy('name')->get());
-            $databaseAvailable = true;
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Kiosk employees load failed: '.get_class($e).': '.$e->getMessage());
-            $employees = collect();
-        }
-
-        // Nomor WhatsApp tujuan tombol floating (dari .env, bisa format 08xx atau 62xx).
+        $employees = collect();
+        $databaseAvailable = true;
         $waNumber = PhoneHelper::normalize(config('services.whatsapp.reception_number'));
-
         $waMessage = 'Halo Admin Buku Tamu Pelindo Regional 1 Dumai, saya ingin bertanya seputar kunjungan ke Pelabuhan Dumai.';
 
         return view('kiosk.index', compact('employees', 'waNumber', 'waMessage', 'databaseAvailable'));
+    }
+
+    /**
+     * Load the optional employee list after the public landing page is rendered.
+     */
+    public function employees(): JsonResponse
+    {
+        try {
+            $employees = Cache::remember(
+                'employees.active',
+                3600,
+                fn () => Employee::active()->orderBy('name')->get(['id', 'name', 'department'])
+            );
+
+            return response()->json([
+                'employees' => $employees->map(fn (Employee $employee) => [
+                    'id' => $employee->id,
+                    'name' => $employee->name,
+                    'department' => $employee->department,
+                ])->values(),
+            ]);
+        } catch (Throwable $exception) {
+            Log::warning('Kiosk employee list unavailable', [
+                'exception_class' => $exception::class,
+                'file' => basename($exception->getFile()),
+                'line' => $exception->getLine(),
+            ]);
+
+            return response()->json([
+                'message' => 'Daftar pegawai belum dapat dimuat.',
+            ], 503);
+        }
     }
 
     /**

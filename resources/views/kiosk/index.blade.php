@@ -139,18 +139,18 @@
                 inset: 0;
                 z-index: 100;
                 display: flex;
-                align-items: center;
+                align-items: flex-start;
                 justify-content: center;
                 overflow-y: auto;
-                padding: 1.5rem;
-                background: #f5f7fb;
+                padding: 1rem;
+                background: linear-gradient(180deg, #26366f 0%, #47578f 47%, #f5f7fb 100%);
                 opacity: 1;
                 visibility: visible;
                 transition: opacity 260ms ease, visibility 260ms ease;
             }
 
             [data-theme="dark"] .page-loading-overlay {
-                background: #0f172a;
+                background: linear-gradient(180deg, #0b1429 0%, #172554 48%, #0f172a 100%);
             }
 
             .page-loading-overlay.is-hidden {
@@ -160,7 +160,8 @@
             }
 
             .page-loading-card {
-                width: min(100%, 38rem);
+                width: min(100%, 72rem);
+                margin: 0 auto;
             }
 
             .skeleton {
@@ -174,6 +175,10 @@
                 background: #263449;
             }
 
+            .skeleton-on-dark {
+                background: rgba(255, 255, 255, 0.2);
+            }
+
             .skeleton::after {
                 position: absolute;
                 inset: 0;
@@ -185,6 +190,10 @@
 
             [data-theme="dark"] .skeleton::after {
                 background: linear-gradient(90deg, transparent, rgba(148,163,184,0.18), transparent);
+            }
+
+            .skeleton-on-dark::after {
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent);
             }
 
             [data-theme="dark"] [class~="bg-white/80"] {
@@ -665,30 +674,52 @@
         }
     }" @open-form.window="openForm()" class="font-sans antialiased min-h-screen text-bank-navy relative overflow-x-hidden">
 
-        <div id="page-loading-overlay" class="page-loading-overlay" role="status" aria-live="polite" aria-label="Halaman sedang dimuat">
+        <div id="page-loading-overlay" data-page-skeleton="kiosk" class="page-loading-overlay" role="status" aria-live="polite" aria-hidden="false" aria-label="Halaman kunjungan sedang dimuat">
             <div class="page-loading-card">
-                <div class="mb-8 flex items-center justify-between">
+                <div class="mx-auto mt-2 flex w-full max-w-6xl items-center justify-between gap-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 sm:px-5">
                     <div class="flex items-center gap-3">
-                        <div class="skeleton h-11 w-11 rounded-xl"></div>
+                        <div class="skeleton skeleton-on-dark h-10 w-10 rounded-xl"></div>
                         <div>
-                            <div class="skeleton h-3 w-28"></div>
-                            <div class="skeleton mt-2 h-2.5 w-20"></div>
+                            <div class="skeleton skeleton-on-dark h-3 w-16"></div>
+                            <div class="skeleton skeleton-on-dark mt-2 h-2 w-20"></div>
                         </div>
                     </div>
-                    <div class="skeleton h-9 w-24 rounded-xl"></div>
-                </div>
-                <div class="rounded-3xl border border-slate-200/70 bg-white/80 p-6 shadow-xl sm:p-9">
-                    <div class="skeleton mx-auto h-4 w-52 rounded-full"></div>
-                    <div class="skeleton mx-auto mt-6 h-8 w-4/5"></div>
-                    <div class="skeleton mx-auto mt-3 h-6 w-3/5"></div>
-                    <div class="skeleton mx-auto mt-6 h-3 w-full"></div>
-                    <div class="skeleton mx-auto mt-2 h-3 w-11/12"></div>
-                    <div class="mt-8 flex justify-center gap-3">
-                        <div class="skeleton h-11 w-40 rounded-xl"></div>
-                        <div class="skeleton h-11 w-36 rounded-xl"></div>
+                    <div class="hidden items-center gap-6 md:flex">
+                        <div class="skeleton skeleton-on-dark h-2.5 w-12"></div>
+                        <div class="skeleton skeleton-on-dark h-2.5 w-14"></div>
+                        <div class="skeleton skeleton-on-dark h-2.5 w-8"></div>
+                        <div class="skeleton skeleton-on-dark h-2.5 w-20"></div>
                     </div>
-                    <p class="mt-8 text-center text-xs font-medium text-slate-500">Menyiapkan halaman kunjungan...</p>
+                    <div class="flex items-center gap-2">
+                        <div class="skeleton skeleton-on-dark hidden h-9 w-20 rounded-xl sm:block"></div>
+                        <div class="skeleton h-9 w-24 rounded-xl"></div>
+                    </div>
                 </div>
+                <section class="mx-auto flex min-h-[calc(100vh-6rem)] max-w-4xl flex-col items-center justify-center px-2 pb-10 pt-16 text-center sm:px-6 sm:pt-8">
+                    <div class="skeleton skeleton-on-dark h-6 w-60 max-w-full rounded-full"></div>
+                    <div class="mt-7 w-full space-y-3">
+                        <div class="skeleton skeleton-on-dark mx-auto h-9 w-4/5 max-w-xl sm:h-12"></div>
+                        <div class="skeleton skeleton-on-dark mx-auto h-9 w-3/5 max-w-md sm:h-12"></div>
+                    </div>
+                    <div class="mt-6 w-full max-w-xl space-y-2.5">
+                        <div class="skeleton skeleton-on-dark mx-auto h-3 w-full"></div>
+                        <div class="skeleton skeleton-on-dark mx-auto h-3 w-11/12"></div>
+                        <div class="skeleton skeleton-on-dark mx-auto h-3 w-3/4"></div>
+                    </div>
+                    <div class="mt-8 flex w-full flex-wrap justify-center gap-3">
+                        <div class="skeleton h-11 w-44 rounded-xl"></div>
+                        <div class="skeleton skeleton-on-dark h-11 w-40 rounded-xl"></div>
+                    </div>
+                    <div class="mt-8 flex flex-wrap justify-center gap-2">
+                        @foreach(range(1, 4) as $step)
+                            <div class="skeleton skeleton-on-dark h-7 w-24 rounded-full"></div>
+                        @endforeach
+                    </div>
+                    <p class="mt-8 text-xs font-medium text-white/75">Menyiapkan halaman kunjungan…</p>
+                    <div class="mt-10 grid h-10 w-10 place-items-center rounded-full border border-white/25">
+                        <div class="skeleton skeleton-on-dark h-2 w-2 rounded-full"></div>
+                    </div>
+                </section>
             </div>
         </div>
 
@@ -1026,11 +1057,8 @@
 
                     <div>
                         <label class="block text-sm font-medium text-bank-navy mb-1">Pegawai yang Dituju</label>
-                        <select name="employee_id" class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy bg-white focus:border-bank-blue focus:ring-0 focus:outline-none">
-                            <option value="">Pilih Pegawai</option>
-                            @foreach($employees as $employee)
-                                <option value="{{ $employee->id }}">{{ $employee->name }} ({{ $employee->department }})</option>
-                            @endforeach
+                        <select name="employee_id" data-employee-select disabled class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy bg-white focus:border-bank-blue focus:ring-0 focus:outline-none">
+                            <option value="">Memuat daftar pegawai…</option>
                         </select>
                     </div>
 <div>
@@ -1213,6 +1241,7 @@
             const blacklistAlert = document.getElementById('blacklist-alert');
             const pageLoadingOverlay = document.getElementById('page-loading-overlay');
             const connectionStatus = document.getElementById('kiosk-connection-status');
+            const employeeSelect = document.querySelector('[data-employee-select]');
 
             const updateConnectionStatus = () => {
                 if (!connectionStatus) return;
@@ -1233,21 +1262,63 @@
             window.addEventListener('offline', updateConnectionStatus);
             updateConnectionStatus();
 
+            const loadEmployees = async () => {
+                if (!employeeSelect) return;
+
+                const controller = new AbortController();
+                const timeoutId = window.setTimeout(() => controller.abort(), 5000);
+                try {
+                    const response = await fetch(@json(route('kiosk.employees')), {
+                        headers: { 'Accept': 'application/json' },
+                        signal: controller.signal,
+                    });
+                    if (!response.ok) throw new Error('Daftar pegawai gagal dimuat.');
+
+                    const data = await response.json();
+                    employeeSelect.replaceChildren(new Option('Pilih Pegawai', ''));
+                    data.employees.forEach(employee => {
+                        const option = new Option(
+                            `${employee.name} (${employee.department || 'Pegawai'})`,
+                            employee.id
+                        );
+                        employeeSelect.append(option);
+                    });
+                    if (data.employees.length === 0) {
+                        employeeSelect.options[0].textContent = 'Belum ada pegawai aktif';
+                    }
+                    employeeSelect.disabled = false;
+                    if (connectionStatus) delete connectionStatus.dataset.databaseDown;
+                    updateConnectionStatus();
+                } catch (error) {
+                    employeeSelect.replaceChildren(new Option('Daftar pegawai belum tersedia', ''));
+                    employeeSelect.disabled = false;
+                    if (connectionStatus) connectionStatus.dataset.databaseDown = 'true';
+                    updateConnectionStatus();
+                } finally {
+                    window.clearTimeout(timeoutId);
+                }
+            };
+            loadEmployees();
+
             const hidePageLoading = function () {
-                if (pageLoadingOverlay) pageLoadingOverlay.classList.add('is-hidden');
+                if (pageLoadingOverlay) {
+                    pageLoadingOverlay.classList.add('is-hidden');
+                    pageLoadingOverlay.setAttribute('aria-hidden', 'true');
+                }
             };
 
             if (document.readyState === 'complete') {
-                setTimeout(hidePageLoading, 180);
+                requestAnimationFrame(hidePageLoading);
             } else {
-                window.addEventListener('load', function () {
-                    setTimeout(hidePageLoading, 180);
-                }, { once: true });
+                document.addEventListener('DOMContentLoaded', hidePageLoading, { once: true });
             }
 
             window.addEventListener('pageshow', hidePageLoading);
             window.addEventListener('beforeunload', function () {
-                if (pageLoadingOverlay) pageLoadingOverlay.classList.remove('is-hidden');
+                if (pageLoadingOverlay) {
+                    pageLoadingOverlay.classList.remove('is-hidden');
+                    pageLoadingOverlay.setAttribute('aria-hidden', 'false');
+                }
             });
 
             let stream = null;

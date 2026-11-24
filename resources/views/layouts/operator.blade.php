@@ -35,6 +35,35 @@
             }
         }
     }">
+        <div
+            id="operator-dashboard-skeleton"
+            data-page-skeleton="dashboard"
+            @if(!request()->routeIs('dashboard')) hidden @endif
+            aria-hidden="{{ request()->routeIs('dashboard') ? 'false' : 'true' }}"
+            class="fixed inset-0 z-[120] overflow-y-auto bg-bank-bg text-bank-navy"
+            role="status"
+            aria-label="Dashboard sedang dimuat"
+        >
+            @include('components.dashboard-skeleton')
+        </div>
+        <script>
+            (() => {
+                const skeleton = document.getElementById('operator-dashboard-skeleton');
+                const hide = () => {
+                    if (skeleton) {
+                        skeleton.hidden = true;
+                        skeleton.setAttribute('aria-hidden', 'true');
+                    }
+                };
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', hide, { once: true });
+                } else {
+                    requestAnimationFrame(hide);
+                }
+                window.addEventListener('pageshow', hide);
+            })();
+        </script>
         <div class="min-h-screen">
             <div class="pointer-events-none fixed inset-0 -z-10 bg-bank-bg"></div>
 

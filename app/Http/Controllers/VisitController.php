@@ -74,11 +74,13 @@ class VisitController extends Controller
             });
         });
 
-        $recentVisits = Visit::with('employee')->withExists('photo')
-            ->forDay($selectedDay)
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
+        $recentVisits = $search === '' && $visits->currentPage() === 1
+            ? $visits->getCollection()
+            : Visit::with('employee')->withExists('photo')
+                ->forDay($selectedDay)
+                ->orderBy('created_at', 'desc')
+                ->take(5)
+                ->get();
 
         return view('reception.dashboard', compact(
             'visits',
