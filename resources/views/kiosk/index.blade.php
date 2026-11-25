@@ -604,6 +604,7 @@
         }
     }" @open-form.window="openForm()" class="font-sans antialiased min-h-screen text-bank-navy relative overflow-x-hidden">
 
+        <x-splash duration="2" />
         <div id="page-loading-overlay" data-page-skeleton="kiosk" class="page-loading-overlay" role="status" aria-live="polite" aria-hidden="false" aria-label="Halaman kunjungan sedang dimuat">
             @include('components.landing-skeleton')
         </div>

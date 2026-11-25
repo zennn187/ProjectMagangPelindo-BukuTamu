@@ -1,5 +1,5 @@
 
-@php($splashDuration = $duration ?? 5)
+@php($splashDuration = $duration ?? 2)
 @php($splashLogo = file_exists(public_path('images/logo_pelindo.png')) ? asset('images/logo_pelindo.png') : null)
 
 <div id="bukutamu-splash" class="bukutamu-splash" role="status" aria-label="Memuat Buku Tamu Pelindo">
@@ -41,7 +41,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #f5f7fa; /* bank-bg */
+        background: radial-gradient(circle at 50% 42%, #ffffff 0%, #f5f7fa 52%, #e8eef5 100%);
         font-family: 'Figtree', ui-sans-serif, system-ui, sans-serif;
         opacity: 0;
         animation: bukutamu-in 400ms ease forwards;
@@ -71,7 +71,7 @@
         margin-right: -0.32em; /* kompensasi tracking agar tetap center */
         color: #1f6fb2;
         opacity: 0;
-        animation: bukutamu-rise 600ms ease 500ms forwards;
+        animation: bukutamu-rise 500ms ease 300ms forwards;
     }
     .bukutamu-splash-divider {
         width: 56px;
@@ -79,7 +79,7 @@
         background: #d7dee8;
         margin: 20px 0 16px;
         opacity: 0;
-        animation: bukutamu-rise 600ms ease 700ms forwards;
+        animation: bukutamu-rise 500ms ease 450ms forwards;
     }
     .bukutamu-splash-region {
         font-size: clamp(0.85rem, 3vw, 1rem);
@@ -87,7 +87,7 @@
         letter-spacing: 0.08em;
         color: #343c6a; /* bank-navy */
         opacity: 0;
-        animation: bukutamu-rise 600ms ease 850ms forwards;
+        animation: bukutamu-rise 500ms ease 550ms forwards;
     }
     .bukutamu-splash-app {
         margin-top: 4px;
@@ -97,7 +97,7 @@
         text-transform: uppercase;
         color: #718ebf; /* bank-gray */
         opacity: 0;
-        animation: bukutamu-rise 600ms ease 1000ms forwards;
+        animation: bukutamu-rise 500ms ease 600ms forwards;
     }
     .bukutamu-splash-progress {
         width: min(200px, 56vw);
@@ -107,7 +107,7 @@
         background: #e6eff5; /* bank-light */
         overflow: hidden;
         opacity: 0;
-        animation: bukutamu-rise 600ms ease 1200ms forwards;
+        animation: bukutamu-rise 500ms ease 650ms forwards;
     }
     .bukutamu-splash-progress-bar {
         display: block;
@@ -116,6 +116,11 @@
         border-radius: inherit;
         background: #1814f3; /* bank-blue */
         animation: bukutamu-progress {{ $splashDuration }}s linear forwards;
+        transition: width 180ms ease;
+    }
+    .bukutamu-splash.complete .bukutamu-splash-progress-bar {
+        width: 100%;
+        animation: none;
     }
     .bukutamu-splash.done {
         opacity: 0;
@@ -126,7 +131,7 @@
     @keyframes bukutamu-in { to { opacity: 1; } }
     @keyframes bukutamu-pop { to { opacity: 1; transform: scale(1); } }
     @keyframes bukutamu-rise { to { opacity: 1; } }
-    @keyframes bukutamu-progress { to { width: 100%; } }
+    @keyframes bukutamu-progress { to { width: 88%; } }
     @media (prefers-reduced-motion: reduce) {
         .bukutamu-splash *, .bukutamu-splash *::before, .bukutamu-splash *::after {
             animation-duration: 0.001s !important;
@@ -140,20 +145,47 @@
         var root = document.getElementById('bukutamu-splash');
         if (!root) return;
 
+        try {
+            if (window.sessionStorage.getItem('bukutamu-splash-seen') === '1') {
+                root.remove();
+                return;
+            }
+            window.sessionStorage.setItem('bukutamu-splash-seen', '1');
+        } catch (error) {
+            console.warn('Status splash screen tidak dapat disimpan.', error);
+        }
+
         var prevOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
 
         var finished = false;
+        var startedAt = performance.now();
+        var minVisibleMs = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 250 : 1200;
+        var maxWait = window.setTimeout(finish, 8000);
+
         function finish() {
             if (finished) return;
             finished = true;
-            root.classList.add('done');
+            window.clearTimeout(maxWait);
+            root.classList.add('complete');
             window.setTimeout(function () {
-                document.body.style.overflow = prevOverflow;
-                root.remove();
-            }, 550);
+                root.classList.add('done');
+                window.setTimeout(function () {
+                    document.body.style.overflow = prevOverflow;
+                    root.remove();
+                }, 550);
+            }, 180);
         }
 
-        window.setTimeout(finish, {{ $splashDuration }} * 1000);
+        function finishWhenReady() {
+            var remaining = Math.max(0, minVisibleMs - (performance.now() - startedAt));
+            window.setTimeout(finish, remaining);
+        }
+
+        if (document.readyState === 'complete') {
+            finishWhenReady();
+        } else {
+            window.addEventListener('load', finishWhenReady, { once: true });
+        }
     })();
 </script>

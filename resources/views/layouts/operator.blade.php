@@ -35,6 +35,7 @@
             }
         }
     }">
+        <x-splash duration="2" />
         <div
             data-page-skeleton="dashboard"
             @if(!request()->routeIs('dashboard')) hidden @endif
