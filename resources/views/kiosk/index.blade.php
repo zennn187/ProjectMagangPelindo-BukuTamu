@@ -134,78 +134,8 @@
                 color: #e2e8f0 !important;
             }
 
-            .page-loading-overlay {
-                position: fixed;
-                inset: 0;
-                z-index: 100;
-                display: flex;
-                align-items: flex-start;
-                justify-content: center;
-                overflow-y: auto;
-                padding: 1rem;
-                background: linear-gradient(180deg, #26366f 0%, #47578f 47%, #f5f7fb 100%);
-                opacity: 1;
-                visibility: visible;
-                transition: opacity 260ms ease, visibility 260ms ease;
-            }
-
-            [data-theme="dark"] .page-loading-overlay {
-                background: linear-gradient(180deg, #0b1429 0%, #172554 48%, #0f172a 100%);
-            }
-
-            .page-loading-overlay.is-hidden {
-                opacity: 0;
-                visibility: hidden;
-                pointer-events: none;
-            }
-
-            .page-loading-card {
-                width: min(100%, 72rem);
-                margin: 0 auto;
-            }
-
-            .skeleton {
-                overflow: hidden;
-                position: relative;
-                border-radius: 0.75rem;
-                background: #e2e8f0;
-            }
-
-            [data-theme="dark"] .skeleton {
-                background: #263449;
-            }
-
-            .skeleton-on-dark {
-                background: rgba(255, 255, 255, 0.2);
-            }
-
-            .skeleton::after {
-                position: absolute;
-                inset: 0;
-                transform: translateX(-100%);
-                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
-                animation: skeleton-shimmer 1.5s ease-in-out infinite;
-                content: "";
-            }
-
-            [data-theme="dark"] .skeleton::after {
-                background: linear-gradient(90deg, transparent, rgba(148,163,184,0.18), transparent);
-            }
-
-            .skeleton-on-dark::after {
-                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent);
-            }
-
             [data-theme="dark"] [class~="bg-white/80"] {
                 background-color: #1e293b !important;
-            }
-
-            [data-theme="dark"] .page-loading-overlay .text-slate-500 {
-                color: #a8b8d0 !important;
-            }
-
-            @keyframes skeleton-shimmer {
-                to { transform: translateX(100%); }
             }
 
             /* Non-mirror (default): tampil apa adanya (sesuai sensor kamera). */
@@ -675,52 +605,10 @@
     }" @open-form.window="openForm()" class="font-sans antialiased min-h-screen text-bank-navy relative overflow-x-hidden">
 
         <div id="page-loading-overlay" data-page-skeleton="kiosk" class="page-loading-overlay" role="status" aria-live="polite" aria-hidden="false" aria-label="Halaman kunjungan sedang dimuat">
-            <div class="page-loading-card">
-                <div class="mx-auto mt-2 flex w-full max-w-6xl items-center justify-between gap-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 sm:px-5">
-                    <div class="flex items-center gap-3">
-                        <div class="skeleton skeleton-on-dark h-10 w-10 rounded-xl"></div>
-                        <div>
-                            <div class="skeleton skeleton-on-dark h-3 w-16"></div>
-                            <div class="skeleton skeleton-on-dark mt-2 h-2 w-20"></div>
-                        </div>
-                    </div>
-                    <div class="hidden items-center gap-6 md:flex">
-                        <div class="skeleton skeleton-on-dark h-2.5 w-12"></div>
-                        <div class="skeleton skeleton-on-dark h-2.5 w-14"></div>
-                        <div class="skeleton skeleton-on-dark h-2.5 w-8"></div>
-                        <div class="skeleton skeleton-on-dark h-2.5 w-20"></div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="skeleton skeleton-on-dark hidden h-9 w-20 rounded-xl sm:block"></div>
-                        <div class="skeleton h-9 w-24 rounded-xl"></div>
-                    </div>
-                </div>
-                <section class="mx-auto flex min-h-[calc(100vh-6rem)] max-w-4xl flex-col items-center justify-center px-2 pb-10 pt-16 text-center sm:px-6 sm:pt-8">
-                    <div class="skeleton skeleton-on-dark h-6 w-60 max-w-full rounded-full"></div>
-                    <div class="mt-7 w-full space-y-3">
-                        <div class="skeleton skeleton-on-dark mx-auto h-9 w-4/5 max-w-xl sm:h-12"></div>
-                        <div class="skeleton skeleton-on-dark mx-auto h-9 w-3/5 max-w-md sm:h-12"></div>
-                    </div>
-                    <div class="mt-6 w-full max-w-xl space-y-2.5">
-                        <div class="skeleton skeleton-on-dark mx-auto h-3 w-full"></div>
-                        <div class="skeleton skeleton-on-dark mx-auto h-3 w-11/12"></div>
-                        <div class="skeleton skeleton-on-dark mx-auto h-3 w-3/4"></div>
-                    </div>
-                    <div class="mt-8 flex w-full flex-wrap justify-center gap-3">
-                        <div class="skeleton h-11 w-44 rounded-xl"></div>
-                        <div class="skeleton skeleton-on-dark h-11 w-40 rounded-xl"></div>
-                    </div>
-                    <div class="mt-8 flex flex-wrap justify-center gap-2">
-                        @foreach(range(1, 4) as $step)
-                            <div class="skeleton skeleton-on-dark h-7 w-24 rounded-full"></div>
-                        @endforeach
-                    </div>
-                    <p class="mt-8 text-xs font-medium text-white/75">Menyiapkan halaman kunjungan…</p>
-                    <div class="mt-10 grid h-10 w-10 place-items-center rounded-full border border-white/25">
-                        <div class="skeleton skeleton-on-dark h-2 w-2 rounded-full"></div>
-                    </div>
-                </section>
-            </div>
+            @include('components.landing-skeleton')
+        </div>
+        <div data-page-skeleton="dashboard" hidden aria-hidden="true" class="fixed inset-0 z-[120] overflow-y-auto bg-bank-bg text-bank-navy" role="status" aria-label="Dashboard sedang dimuat">
+            @include('components.dashboard-skeleton')
         </div>
 
         {{-- ============ NAVBAR (over hero) ============ --}}
@@ -1302,7 +1190,7 @@
 
             const hidePageLoading = function () {
                 if (pageLoadingOverlay) {
-                    pageLoadingOverlay.classList.add('is-hidden');
+                    pageLoadingOverlay.hidden = true;
                     pageLoadingOverlay.setAttribute('aria-hidden', 'true');
                 }
             };
@@ -1316,7 +1204,7 @@
             window.addEventListener('pageshow', hidePageLoading);
             window.addEventListener('beforeunload', function () {
                 if (pageLoadingOverlay) {
-                    pageLoadingOverlay.classList.remove('is-hidden');
+                    pageLoadingOverlay.hidden = false;
                     pageLoadingOverlay.setAttribute('aria-hidden', 'false');
                 }
             });

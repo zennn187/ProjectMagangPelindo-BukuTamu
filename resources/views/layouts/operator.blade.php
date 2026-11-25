@@ -36,7 +36,6 @@
         }
     }">
         <div
-            id="operator-dashboard-skeleton"
             data-page-skeleton="dashboard"
             @if(!request()->routeIs('dashboard')) hidden @endif
             aria-hidden="{{ request()->routeIs('dashboard') ? 'false' : 'true' }}"
@@ -46,9 +45,19 @@
         >
             @include('components.dashboard-skeleton')
         </div>
+        <div
+            data-page-skeleton="kiosk"
+            hidden
+            aria-hidden="true"
+            class="page-loading-overlay"
+            role="status"
+            aria-label="Halaman kunjungan sedang dimuat"
+        >
+            @include('components.landing-skeleton')
+        </div>
         <script>
             (() => {
-                const skeleton = document.getElementById('operator-dashboard-skeleton');
+                const skeleton = document.querySelector('[data-page-skeleton="dashboard"]');
                 const hide = () => {
                     if (skeleton) {
                         skeleton.hidden = true;

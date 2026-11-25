@@ -9,12 +9,7 @@ Alpine.start();
 const showPageSkeleton = (skeleton) => {
     if (!skeleton) return;
 
-    if (skeleton.dataset.pageSkeleton === 'kiosk') {
-        skeleton.classList.remove('is-hidden');
-    } else {
-        skeleton.hidden = false;
-    }
-
+    skeleton.hidden = false;
     skeleton.setAttribute('aria-hidden', 'false');
 };
 
