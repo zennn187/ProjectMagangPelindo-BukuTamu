@@ -1,6 +1,6 @@
 # Handoff Konteks Buku Tamu — Codex / Antigravity
 
-Dokumen ini merangkum konteks produk, keputusan UI, alur penting, pekerjaan terdahulu, dan kondisi perubahan terakhir agar agent baru dapat melanjutkan tanpa membaca seluruh riwayat chat. **Kode dan status Git saat ini tetap menjadi sumber kebenaran.** Commit/push terbaru sudah diverifikasi; status deployment Vercel tetap harus diperiksa terpisah.
+Dokumen ini merangkum konteks produk, keputusan UI, alur sistem, lokasi kode, pekerjaan terdahulu, validasi, serta hal yang belum dipastikan agar agent baru dapat melanjutkan tanpa membaca seluruh riwayat chat. **Kode dan status Git saat ini tetap menjadi sumber kebenaran.** Terakhir diperbarui 26 November 2026. Commit aplikasi terbaru sudah dipush; pembaruan dokumen ini dibuat sesudahnya dan masih lokal. Status deployment Vercel tetap harus diperiksa terpisah.
 
 ## Instruksi untuk agent berikutnya
 
@@ -10,6 +10,7 @@ Dokumen ini merangkum konteks produk, keputusan UI, alur penting, pekerjaan terd
 4. Ikuti komponen, route, helper, authorization, gaya, dan pola tes yang telah ada. Jangan mengubah palet atau tampilan halaman lain saat mengerjakan fitur lokal.
 5. Untuk perubahan UI, validasi build dan halaman/flow yang tepat. Untuk perubahan data, tambahkan tes terarah dan jangan memakai database produksi sebagai database tes.
 6. Jangan menganggap perubahan lokal sudah dipush, dideploy, atau migrasi production sudah dijalankan. Konfirmasi melalui bukti yang tersedia.
+7. Jangan menaruh credential, token, backup berisi PII, atau foto tamu ke source control/log. Perlakukan file backup dan detail tamu sebagai data sensitif.
 
 ## Produk dan stack
 
@@ -105,6 +106,48 @@ Palet utama didefinisikan di `tailwind.config.js` sebagai warna `bank`:
 - Data kiosk/form gate dapat dikirim publik; scanner, dashboard, foto, mutasi, laporan gate memerlukan autentikasi/verified; fitur pengelolaan/admin dan riwayat status memerlukan role admin sesuai route.
 - `GateLog` adalah jejak event scan masuk/keluar. `visit_status_histories` adalah audit perubahan status. Keduanya memiliki tujuan berbeda dan tidak saling menggantikan.
 
+## Peta kode untuk agent baru
+
+| Area | Lokasi utama | Tanggung jawab |
+|---|---|---|
+| Route aplikasi | `routes/web.php`, `routes/auth.php` | Alur publik, operator, admin, login/logout, middleware, throttle |
+| Kiosk publik | `app/Http/Controllers/KioskController.php`, `resources/views/kiosk/index.blade.php` | Landing/form publik, daftar pegawai async, simpan kunjungan, status awal, badge |
+| Gate publik & scanner | `app/Http/Controllers/GateController.php`, `resources/views/gate/form.blade.php`, `resources/views/gate/scanner.blade.php` | Pendaftaran gate, scan, GateLog, aktivitas hari ini, kartu detail |
+| Dashboard | `app/Http/Controllers/VisitController.php`, `resources/views/reception/dashboard.blade.php` | Statistik, antrean harian/belum selesai, aksi status, foto, polling |
+| Laporan Gate | `app/Http/Controllers/Admin/GateReportController.php`, `resources/views/admin/gate-reports.blade.php` | Daftar kunjungan bersumber gate dan feed terbaru |
+| Laporan kunjungan | `app/Http/Controllers/Admin/ReportController.php`, `app/Exports/VisitsExport.php`, `resources/views/admin/reports/index.blade.php` | Filter tanggal, agregasi, chart, ekspor Excel |
+| Audit status | `app/Services/VisitStatusService.php`, `app/Models/VisitStatusHistory.php`, `app/Http/Controllers/Admin/VisitStatusHistoryController.php` | Perubahan status dalam transaksi dan halaman riwayat admin |
+| Foto | `app/Services/PhotoService.php`, `app/Models/VisitPhoto.php`, `app/Http/Controllers/VisitController.php` | Kompresi, penyimpanan BLOB, endpoint foto privat |
+| Backup/retensi | `app/Services/VisitBackupService.php`, `app/Http/Controllers/Admin/DataManagementController.php`, `resources/views/admin/data/index.blade.php` | ZIP backup/restore, pengaturan masa simpan, preview/hapus manual |
+| Layout operator | `resources/views/layouts/operator.blade.php` | Sidebar, menu berdasar role, tema, layout halaman, logout |
+| Tema/animasi | `tailwind.config.js`, `resources/css/app.css`, `resources/js/app.js` | Token warna, dark mode, skeleton, focus/reduced-motion, toast dan transisi |
+| Loading | `resources/views/components/landing-skeleton.blade.php`, `resources/views/components/dashboard-skeleton.blade.php`, `resources/views/components/splash.blade.php` | Skeleton sesuai tujuan dan splash awal |
+| Identitas Pelindo | `public/images/logo_pelindo_transparan_HD.png`, `public/images/logo_pelindo_aja.png` | Wordmark penuh dan mark/icon kecil; pertahankan perbedaan penggunaannya |
+| Panduan operasi | `PANDUAN-AIVEN-MYSQL.md`, `resources/views/privacy.blade.php` | Langkah Aiven, backup, retensi, akses dan privasi |
+
+### Tabel dan domain penting
+
+- `visits`: identitas/keperluan kunjungan, status, sumber (`kiosk`/`gate`), waktu masuk/keluar dan token.
+- `visit_photos`: isi foto dan MIME type, terkait ke kunjungan. Jangan eager-load BLOB untuk daftar; gunakan flag keberadaan dan endpoint privat.
+- `gate_logs`: event scan arah masuk/keluar, token, `visit_id`, timestamp.
+- `visit_status_histories`: actor, action, status lama/baru, catatan, waktu. Ini audit perubahan status, bukan log scanner.
+- `retention_settings`: konfigurasi retensi foto dan kunjungan.
+- Tabel lain seperti pegawai, pengguna, blacklist mengikuti schema/migration yang ada; cek migration/model aktual sebelum mengubah relasi.
+
+### Transisi status yang penting
+
+Status di `App\Models\Visit` adalah `pending`, `waiting`, `active`, `completed`, dan `rejected`.
+
+- Kiosk membuat kunjungan dengan status `pending`.
+- `wait`: hanya pending → waiting.
+- `check-in`: pending/waiting → active.
+- `check-out`: active → completed.
+- `accept-delivery`: pending → completed.
+- `reject`: pending/waiting → rejected.
+- Gate dapat membuat kunjungan active dan scan masuk/keluar dicatat sebagai `GateLog`.
+
+Gunakan `VisitStatusService` untuk transisi status, validasi status asal, locking/transaksi, dan audit. Jika sebuah perubahan khusus gate memiliki pola transaksi sendiri, pastikan audit/status/log tetap konsisten dan gagal bersama bila salah satu bagian transaksi gagal.
+
 ## Fitur penting yang sudah dibangun
 
 Ini adalah ringkasan berdasarkan checkpoint/riwayat pekerjaan. Verifikasi implementasi aktual sebelum mengubahnya.
@@ -148,14 +191,18 @@ Ini adalah ringkasan berdasarkan checkpoint/riwayat pekerjaan. Verifikasi implem
 Saat dokumen ini dibuat:
 
 - Branch: `main`.
-- Commit terbaru: `d85da5c perbaikan bagian scan gate v2`.
-- Commit tersebut terlihat pada `HEAD -> main` dan `origin/main`; `git status -sb` bersih pada pemeriksaan terakhir.
-- Pengguna mengonfirmasi commit dan push terbaru. Push sudah terverifikasi di `origin/main`; **deployment Vercel belum diverifikasi**.
-- Perubahan Scan Gate yang dibawa dalam commit tersebut:
+- Commit terbaru: `026c170 pergantian logo pelindo` (2026-11-26).
+- Commit terlihat pada `HEAD -> main` dan `origin/main`. `git status -sb` bersih saat diverifikasi sebelum pengayaan dokumen ini; setelah edit ini, handoff menjadi perubahan lokal yang belum dipush. Commit sebelumnya yang relevan: `d85da5c perbaikan bagian scan gate v2`.
+- Push telah diverifikasi. **Status deployment Vercel belum diverifikasi**; jangan menyamakan push Git dengan deployment siap.
+- Pengayaan konteks dalam dokumen ini setelah push belum ikut commit. Saat ini perubahan yang perlu di-commit untuk transfer memori adalah `HANDOFF-CODEX-ANTIGRAVITY.md`.
+- Commit terbaru membawa pembaruan handoff dan pergantian wordmark. File logo yang dipakai: `public/images/logo_pelindo_transparan_HD.png`.
+- Referensi wordmark lama `images/logo_pelindo.png` diganti di `resources/views/profile/edit.blade.php`, `resources/views/layouts/operator.blade.php`, `resources/views/gate/form.blade.php`, dan `resources/views/components/splash.blade.php`.
+- `logo_pelindo_aja.png` tetap dipakai sebagai mark/icon persegi untuk tile kecil pada kiosk/welcome/operator. Jangan menggantinya dengan wordmark lebar kecuali pengguna meminta perubahan tersebut.
+- Perubahan Scan Gate di commit sebelumnya `d85da5c`:
   - `app/Http/Controllers/GateController.php`
   - `resources/views/gate/scanner.blade.php`
   - `tests/Feature/GateReportTest.php`
-  - Dokumen handoff ini dibuat untuk dibaca agent berikutnya.
+  - Memperbaiki `$activityDay` yang undefined dan menambahkan kartu detail interaktif Aktivitas Hari Ini.
 - Perubahan terbaru memungkinkan nama di bagian **Aktivitas Hari Ini** pada Scan Gate dibuka sebagai kartu detail:
   - Data detail meliputi nama, instansi, telepon, nomor identitas, pegawai tujuan, keperluan, status, check-in/check-out, durasi, serta jenis/waktu aktivitas.
   - Aktivitas awal dirender server-side; aktivitas tambahan dibuat dari response API dengan format yang sama.
@@ -171,19 +218,6 @@ Saat dokumen ini dibuat:
   - `php artisan test tests\Feature\GateReportTest.php`: **tidak dapat berjalan**, karena PHP lokal tidak menemukan driver PDO SQLite (`could not find driver`); 0 assertions. Ini keterbatasan environment, bukan bukti tes lulus.
 - Push ke `origin/main` telah terverifikasi. Jangan mengulang commit atau push tanpa perubahan baru; cek deployment Vercel secara terpisah.
 
-## Perubahan logo terbaru — belum di-commit
-
-Setelah commit `d85da5c`, pengguna meminta agar seluruh pemakaian file wordmark `images/logo_pelindo.png` beralih ke logo transparan HD.
-
-- File logo baru yang tersedia di workspace awalnya bernama `public/images/pelindo_logo_transparan_HD.png`; namanya sudah disesuaikan menjadi `public/images/logo_pelindo_transparan_HD.png`.
-- Referensi lama sudah diganti pada:
-  - `resources/views/profile/edit.blade.php`
-  - `resources/views/layouts/operator.blade.php`
-  - `resources/views/gate/form.blade.php`
-  - `resources/views/components/splash.blade.php`
-- `logo_pelindo_aja.png` tidak diganti: itu aset mark/icon terpisah yang dipakai dalam tile kecil, bukan referensi ke wordmark lama `logo_pelindo.png`.
-- Perubahan logo dan pembaruan dokumen handoff ini **masih lokal dan belum di-commit/push**. Deployment belum diverifikasi. Jalankan pencarian referensi, `php artisan view:cache`, `npm run build`, dan `git diff --check` sebelum commit.
-
 ## Deployment, database, dan keamanan operasional
 
 - Database produksi adalah MySQL Aiven; deployment aplikasi menggunakan Vercel. Jangan menjalankan migration/command destructive sebelum memastikan koneksi menunjuk ke target yang dimaksud.
@@ -196,11 +230,23 @@ Setelah commit `d85da5c`, pengguna meminta agar seluruh pemakaian file wordmark 
 
 ## Tes dan cara melanjutkan
 
-- Tes feature terkait gate: `php artisan test tests\Feature\GateReportTest.php` (saat ini terhalang PDO SQLite lokal).
+- Untuk perubahan wordmark: `php artisan view:cache`, `npm run build`, `git diff --check` lulus sebelum commit `026c170`.
+- Tes feature terkait gate: `php artisan test tests\Feature\GateReportTest.php` sebelumnya **tidak dapat berjalan** karena PHP lokal tidak menemukan driver PDO SQLite (`could not find driver`); 0 assertions. Itu keterbatasan environment, bukan tes gagal pada assertion.
+- Tes historis pada perubahan lain pernah lulus (misalnya `VisitLatestTest`/`ReportChartTest` 13 tes, 90 assertions; satu suite 39 tes, 129 assertions), tetapi tes tersebut dijalankan pada checkpoint berbeda dan bukan bukti seluruh HEAD terkini lulus.
 - Validasi UI/asset: `php artisan view:cache`, `npm run build`, `git diff --check`.
 - PHP: `php -l <file>`; gunakan Pint sesuai pola repo bila file PHP berubah.
 - Sebelum menyimpulkan kegagalan tes, bedakan masalah aplikasi dari keterbatasan driver/environment. Jangan mengubah database produksi untuk membuat tes lewat.
-- Setelah perubahan, laporkan file yang diubah, tes yang berhasil/gagal dan alasannya, serta apakah perubahan sudah commit/push/deploy (biasanya belum kecuali ada bukti).
+- Setelah perubahan, laporkan file yang diubah, tes yang berhasil/gagal dan alasannya, serta status commit/push/deploy berdasarkan bukti terbaru.
+
+## Status yang belum terkonfirmasi / risiko operasional
+
+- Deployment Vercel dari commit `026c170` belum diperiksa di percakapan ini. Pastikan Vercel menyelesaikan build dan deployment sebelum menguji logo pada production.
+- Migration foto `2026_11_12_000001_create_visit_photos_table.php` pernah dikonfirmasi berhasil di Aiven oleh pengguna.
+- Migration audit/retensi `2026_11_13_000001_create_visit_status_histories_and_retention_settings.php` pernah ditambahkan. Statusnya pada Aiven belum terkonfirmasi dari bukti terbaru; verifikasi target DB dan `migrate:status` sebelum memakai fitur tersebut.
+- Aiven password pernah terlihat di screenshot lama; tidak ada konfirmasi pasti bahwa credential sudah dirotasi. Jika belum, rotasi lalu perbarui secret Vercel `DB_PASSWORD`.
+- Catatan historis menyebut Free Tier Aiven dijadwalkan dihentikan pada 21 Desember 2026. Periksa kondisi plan dan biaya terkini langsung di Aiven, jangan mengandalkan catatan lama.
+- Backup aplikasi ZIP dan snapshot provider Aiven berbeda. Uji restore di salinan/test database sebelum mengandalkan backup untuk pemulihan.
+- Ukuran skeleton landing pernah berbeda dari beberapa section asli dan skeleton dashboard belum pernah dibandingkan sepenuhnya dengan dashboard authenticated pada browser; cross-check ulang hanya jika tugas berikut menyentuh loading UI.
 
 ## Prompt awal yang disarankan
 

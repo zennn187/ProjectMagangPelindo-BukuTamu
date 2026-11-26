@@ -5,6 +5,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>Kiosk: Buku Tamu Pelindo</title>
+        <meta name="description" content="Daftarkan kunjungan ke Pelindo Regional 1 Dumai melalui Buku Tamu Digital. Isi data tamu dan dapatkan badge QR untuk proses kunjungan.">
+        <link rel="canonical" href="{{ route('kiosk') }}">
         <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
         @include('partials.pwa-head')
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -588,8 +590,11 @@
             }
         },
         openForm() {
+            const wasClosed = !this.formOpen;
             this.formOpen = true;
             this.$nextTick(() => {
+                if (wasClosed) window.dispatchEvent(new Event('kiosk:form-opened'));
+
                 const formSection = document.getElementById('formulir');
                 if (!formSection) return;
 
@@ -655,7 +660,7 @@
                 </svg>
             </div>
             {{-- Ganti gambar: simpan foto Anda sebagai public/images/landing/hero.jpg --}}
-            <img src="{{ asset('images/landing/hero.jpg') }}" alt="Pelabuhan Dumai" class="absolute inset-0 h-full w-full object-cover opacity-40" onerror="this.remove()">
+            <img src="{{ asset('images/landing/hero.jpg') }}" alt="Pelabuhan Dumai" fetchpriority="high" decoding="async" class="absolute inset-0 h-full w-full object-cover opacity-40" onerror="this.remove()">
             <div class="absolute inset-0 bg-gradient-to-b from-bank-navy/75 via-bank-navy/55 to-bank-bg"></div>
 
             <div class="relative z-10 mx-auto max-w-3xl px-5 pb-24 pt-28 text-center">
@@ -724,7 +729,7 @@
                     {{-- Ganti gambar: simpan foto Anda sebagai public/images/landing/service-1.jpg --}}
                     <div class="reveal soft-card overflow-hidden rounded-2xl">
                         <div class="service-media">
-                            <img src="{{ asset('images/landing/service-1.jpg') }}" alt="Terminal Peti Kemas" class="h-56 w-full bg-bank-light object-cover sm:h-72" onerror="this.remove()">
+                            <img src="{{ asset('images/landing/service-1.jpg') }}" alt="Terminal Peti Kemas" loading="lazy" decoding="async" class="h-56 w-full bg-bank-light object-cover sm:h-72" onerror="this.remove()">
                             <span class="service-icon" aria-hidden="true">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="m4 7 8-4 8 4m-16 0 8 4 8-4M4 7v10l8 4 8-4V7m-8 4v10" /></svg>
                             </span>
@@ -737,7 +742,7 @@
                     {{-- Ganti gambar: simpan foto Anda sebagai public/images/landing/service-2.jpg --}}
                     <div class="reveal soft-card overflow-hidden rounded-2xl" style="transition-delay: 120ms;">
                         <div class="service-media">
-                            <img src="{{ asset('images/landing/service-2.jpg') }}" alt="Curah Cair dan CPO" class="h-56 w-full bg-bank-light object-cover sm:h-72" onerror="this.remove()">
+                            <img src="{{ asset('images/landing/service-2.jpg') }}" alt="Curah Cair dan CPO" loading="lazy" decoding="async" class="h-56 w-full bg-bank-light object-cover sm:h-72" onerror="this.remove()">
                             <span class="service-icon" aria-hidden="true">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3.5c3.2 3.7 5 6.5 5 9.2a5 5 0 0 1-10 0c0-2.7 1.8-5.5 5-9.2Z" /></svg>
                             </span>
@@ -750,7 +755,7 @@
                     {{-- Ganti gambar: simpan foto Anda sebagai public/images/landing/service-3.jpg --}}
                     <div class="reveal soft-card overflow-hidden rounded-2xl" style="transition-delay: 240ms;">
                         <div class="service-media">
-                            <img src="{{ asset('images/landing/service-3.jpg') }}" alt="Penumpang dan Feri Dumai Malaka" class="h-56 w-full bg-bank-light object-cover sm:h-72" onerror="this.remove()">
+                            <img src="{{ asset('images/landing/service-3.jpg') }}" alt="Penumpang dan Feri Dumai Malaka" loading="lazy" decoding="async" class="h-56 w-full bg-bank-light object-cover sm:h-72" onerror="this.remove()">
                             <span class="service-icon" aria-hidden="true">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5h18M5 16.5l1.5-5h8l3 5M8 11.5l2-3h4l2.5 3M6 19.5h.01M18 19.5h.01" /></svg>
                             </span>
@@ -778,12 +783,12 @@
                         </p>
                     </div>
                     {{-- Ganti gambar: simpan foto Anda sebagai public/images/landing/about-1.jpg --}}
-                    <img src="{{ asset('images/landing/about-1.jpg') }}" alt="Suasana Pelabuhan Dumai" class="h-64 w-full rounded-2xl bg-bank-light object-cover shadow-sm sm:h-80 lg:ml-auto lg:max-w-md" onerror="this.remove()">
+                    <img src="{{ asset('images/landing/about-1.jpg') }}" alt="Suasana Pelabuhan Dumai" loading="lazy" decoding="async" class="h-64 w-full rounded-2xl bg-bank-light object-cover shadow-sm sm:h-80 lg:ml-auto lg:max-w-md" onerror="this.remove()">
                 </div>
 
                 <div class="mt-8 grid items-center gap-10 lg:grid-cols-2">
                     {{-- Ganti gambar: simpan foto Anda sebagai public/images/landing/about-2.jpg --}}
-                    <img src="{{ asset('images/landing/about-2.jpg') }}" alt="Aktivitas terminal Pelabuhan Dumai" class="h-56 w-full rounded-2xl bg-bank-light object-cover shadow-sm sm:h-72 lg:order-2 lg:max-w-md" onerror="this.remove()">
+                    <img src="{{ asset('images/landing/about-2.jpg') }}" alt="Aktivitas terminal Pelabuhan Dumai" loading="lazy" decoding="async" class="h-56 w-full rounded-2xl bg-bank-light object-cover shadow-sm sm:h-72 lg:order-2 lg:max-w-md" onerror="this.remove()">
                     <div class="lg:order-1 lg:pl-6">
                         <p class="max-w-md text-sm leading-relaxed text-bank-gray">
                             Dengan sistem kunjungan digital, tamu tidak lagi mengisi buku tamu manual. Cukup beberapa langkah
@@ -929,30 +934,30 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-bank-navy mb-1">Nama Lengkap</label>
-                        <input type="text" name="visitor_name" required class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy placeholder-bank-gray focus:border-bank-blue focus:ring-0 focus:outline-none" placeholder="Nama Anda">
+                        <label for="visitor-name" class="block text-sm font-medium text-bank-navy mb-1">Nama Lengkap</label>
+                        <input id="visitor-name" type="text" name="visitor_name" required autocomplete="name" class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy placeholder-bank-gray focus:border-bank-blue focus:ring-0 focus:outline-none" placeholder="Nama Anda">
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-bank-navy mb-1">No. Telepon</label>
-                            <input type="text" name="visitor_phone" required class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy placeholder-bank-gray focus:border-bank-blue focus:ring-0 focus:outline-none" placeholder="08xxxxxxxxxx">
+                            <label for="visitor-phone" class="block text-sm font-medium text-bank-navy mb-1">No. Telepon</label>
+                            <input id="visitor-phone" type="tel" name="visitor_phone" required autocomplete="tel" inputmode="tel" class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy placeholder-bank-gray focus:border-bank-blue focus:ring-0 focus:outline-none" placeholder="08xxxxxxxxxx">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-bank-navy mb-1">Instansi / Perusahaan</label>
-                            <input type="text" name="visitor_institution" required class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy placeholder-bank-gray focus:border-bank-blue focus:ring-0 focus:outline-none" placeholder="Nama instansi">
+                            <label for="visitor-institution" class="block text-sm font-medium text-bank-navy mb-1">Instansi / Perusahaan</label>
+                            <input id="visitor-institution" type="text" name="visitor_institution" required autocomplete="organization" class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy placeholder-bank-gray focus:border-bank-blue focus:ring-0 focus:outline-none" placeholder="Nama instansi">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-bank-navy mb-1">Pegawai yang Dituju</label>
-                        <select name="employee_id" data-employee-select disabled class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy bg-white focus:border-bank-blue focus:ring-0 focus:outline-none">
+                        <label for="employee-id" class="block text-sm font-medium text-bank-navy mb-1">Pegawai yang Dituju</label>
+                        <select id="employee-id" name="employee_id" data-employee-select disabled class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy bg-white focus:border-bank-blue focus:ring-0 focus:outline-none">
                             <option value="">Memuat daftar pegawai…</option>
                         </select>
                     </div>
 <div>
-                        <label class="block text-sm font-medium text-bank-navy mb-2">Jenis Kunjungan</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <p id="visit-type-label" class="block text-sm font-medium text-bank-navy mb-2">Jenis Kunjungan</p>
+                        <div role="group" aria-labelledby="visit-type-label" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <label class="visit-choice flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm text-bank-navy cursor-pointer">
                                 <input type="radio" name="visit_type" value="meet" checked class="accent-[#1814F3]" onchange="document.getElementById('delivery-options').classList.add('hidden')">
                                 Menemui Pegawai
@@ -967,7 +972,8 @@
                             </label>
                         </div>
                         <div id="delivery-options" class="hidden mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
-                            <label class="block text-sm font-medium text-amber-800 mb-2">Surat akan diserahkan bagaimana?</label>
+                            <p id="delivery-pref-label" class="block text-sm font-medium text-amber-800 mb-2">Surat akan diserahkan bagaimana?</p>
+                            <div role="group" aria-labelledby="delivery-pref-label">
                             <label class="flex items-center gap-2 text-sm text-amber-900 mb-1 cursor-pointer">
                                 <input type="radio" name="delivery_pref" value="hand_in" class="accent-[#1814F3]">
                                 Diantar langsung ke pegawai yang dituju
@@ -976,22 +982,23 @@
                                 <input type="radio" name="delivery_pref" value="leave" checked class="accent-[#1814F3]">
                                 Dititipkan ke resepsionis yang bertanggung jawab
                             </label>
+                            </div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-bank-navy mb-1">Keperluan Kunjungan</label>
-                        <textarea name="purpose" rows="3" required class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy placeholder-bank-gray focus:border-bank-blue focus:ring-0 focus:outline-none" placeholder="Tuliskan keperluan kunjungan Anda"></textarea>
+                        <label for="visit-purpose" class="block text-sm font-medium text-bank-navy mb-1">Keperluan Kunjungan</label>
+                        <textarea id="visit-purpose" name="purpose" rows="3" required class="form-input w-full rounded-xl border border-bank-light px-3 py-2.5 text-sm text-bank-navy placeholder-bank-gray focus:border-bank-blue focus:ring-0 focus:outline-none" placeholder="Tuliskan keperluan kunjungan Anda"></textarea>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-bank-navy mb-2">Foto Wajah (Wajib)</label>
-                        <div id="camera-box" class="camera-shell relative overflow-hidden rounded-2xl border bg-bank-bg">
-                            <video id="video" autoplay playsinline class="w-full aspect-video object-cover"></video>
+                        <p id="photo-label" class="block text-sm font-medium text-bank-navy mb-2">Foto Wajah (Wajib)</p>
+                        <div id="camera-box" role="group" aria-labelledby="photo-label" class="camera-shell relative overflow-hidden rounded-2xl border bg-bank-bg">
+                            <video id="video" aria-label="Pratinjau kamera untuk mengambil foto wajah" autoplay playsinline class="w-full aspect-video object-cover"></video>
                             <canvas id="canvas" class="hidden"></canvas>
                             <div id="camera-off" class="absolute inset-0 flex items-center justify-center text-sm text-bank-gray">Menginisialisasi kamera...</div>
                             <div id="capture-overlay" class="hidden absolute inset-0 bg-black/60 flex items-center justify-center">
-                                <img id="captured" class="max-h-full" alt="captured">
+                                <img id="captured" class="max-h-full" alt="Pratinjau foto wajah yang diambil">
                             </div>
                         </div>
                         <div class="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -1252,7 +1259,8 @@
                     snapBtn.disabled = true;
                 }
             }
-            startCamera();
+            window.addEventListener('kiosk:form-opened', startCamera);
+            window.addEventListener('pagehide', stopCamera);
 
             switchCameraBtn.addEventListener('click', function () {
                 currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';

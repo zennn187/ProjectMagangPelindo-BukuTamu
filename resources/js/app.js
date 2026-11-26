@@ -1,7 +1,6 @@
 import './bootstrap';
 
 import Alpine from 'alpinejs';
-import Lenis from 'lenis';
 
 window.Alpine = Alpine;
 Alpine.start();
@@ -194,10 +193,16 @@ window.addEventListener('toast:show', (event) => {
 
 /* Lenis — smooth scrolling (hanya untuk halaman yang mengaktifkan, mis. kiosk). */
 if (document.body.hasAttribute('data-lenis') && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    const lenis = new Lenis({
-        autoRaf: true,
-        duration: 0.9,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    import('lenis').then(({ default: Lenis }) => {
+        if (!document.body.hasAttribute('data-lenis') || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        new Lenis({
+            autoRaf: true,
+            duration: 0.9,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        });
+    }).catch(() => {
+        // Native scrolling remains available if the optional smooth-scroll chunk fails.
     });
 }
 

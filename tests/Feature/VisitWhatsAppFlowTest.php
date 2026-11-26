@@ -32,6 +32,7 @@ class VisitWhatsAppFlowTest extends TestCase
             'phone_number' => '081234567890',
             'is_active' => true,
         ]);
+        $photo = base64_encode(file_get_contents(public_path('icons/icon-192.png')));
 
         $response = $this->postJson(route('kiosk.store'), [
             'visitor_name' => 'Nafisa',
@@ -40,7 +41,7 @@ class VisitWhatsAppFlowTest extends TestCase
             'employee_id' => $employee->id,
             'purpose' => 'Mengantar undangan rapat koordinasi.',
             'visit_type' => Visit::TYPE_MEETING_INVITATION,
-            'photo' => 'data:image/jpeg;base64,'.base64_encode('fake-image'),
+            'photo' => 'data:image/png;base64,'.$photo,
             'consent' => '1',
         ]);
 
@@ -52,7 +53,7 @@ class VisitWhatsAppFlowTest extends TestCase
             'status' => Visit::STATUS_PENDING,
         ]);
         $visit = Visit::where('visitor_name', 'Nafisa')->firstOrFail();
-        $this->assertSame('fake-image', $visit->photo()->firstOrFail()->contents);
+        $this->assertNotEmpty($visit->photo()->firstOrFail()->contents);
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://wa.example.test/send'

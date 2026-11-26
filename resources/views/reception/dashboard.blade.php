@@ -187,15 +187,15 @@
         <div class="px-5 sm:px-6 pb-5">
             <form method="GET" action="{{ route('dashboard') }}" class="flex flex-col lg:flex-row gap-3 items-stretch lg:items-end">
                 <div class="flex-1">
-                    <label class="block text-xs font-medium uppercase tracking-wide text-bank-gray mb-1">Cari</label>
+                    <label for="dashboard-search" class="block text-xs font-medium uppercase tracking-wide text-bank-gray mb-1">Cari</label>
                     <div class="relative">
                         <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-bank-gray" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
-                        <input type="text" name="search" value="{{ $search }}" placeholder="Cari nama, instansi, atau pegawai..." class="soft-search pl-9">
+                        <input id="dashboard-search" type="text" name="search" value="{{ $search }}" placeholder="Cari nama, instansi, atau pegawai..." class="soft-search pl-9">
                     </div>
                 </div>
                 <div class="w-full lg:w-56">
-                    <label class="block text-xs font-medium uppercase tracking-wide text-bank-gray mb-1">Tanggal</label>
-                    <input type="date" name="day" value="{{ $selectedDay }}" class="soft-date">
+                    <label for="dashboard-day" class="block text-xs font-medium uppercase tracking-wide text-bank-gray mb-1">Tanggal</label>
+                    <input id="dashboard-day" type="date" name="day" value="{{ $selectedDay }}" class="soft-date">
                 </div>
                 <div class="flex gap-2">
                     <button type="submit" class="rounded-xl bg-bank-blue px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-700">Filter</button>

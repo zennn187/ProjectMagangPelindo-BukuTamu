@@ -3,6 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description" content="Formulir pendaftaran tamu untuk proses keamanan dan kunjungan Pelindo Regional 1 Dumai.">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Form Kedatangan Tamu – Pelindo Regional 1 Dumai</title>
     @include('partials.pwa-head')
@@ -565,6 +567,7 @@
         function stopStream() {
             if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
         }
+        window.addEventListener('pagehide', stopStream);
 
         function showError(msg) {
             const el   = document.getElementById('form-error');

@@ -74,12 +74,12 @@
         </div>
         <form method="GET" action="{{ route('admin.reports.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
-                <label class="block text-sm font-medium text-bank-navy mb-1">Dari Tanggal</label>
-                <input type="date" name="from" value="{{ $from->format('Y-m-d') }}" class="soft-date">
+                <label for="report-from" class="block text-sm font-medium text-bank-navy mb-1">Dari Tanggal</label>
+                <input id="report-from" type="date" name="from" value="{{ $from->format('Y-m-d') }}" class="soft-date">
             </div>
             <div>
-                <label class="block text-sm font-medium text-bank-navy mb-1">Sampai Tanggal</label>
-                <input type="date" name="to" value="{{ $to->format('Y-m-d') }}" class="soft-date">
+                <label for="report-to" class="block text-sm font-medium text-bank-navy mb-1">Sampai Tanggal</label>
+                <input id="report-to" type="date" name="to" value="{{ $to->format('Y-m-d') }}" class="soft-date">
             </div>
             <div>
                 <button type="submit" class="w-full rounded-xl bg-bank-blue px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">Tampilkan</button>

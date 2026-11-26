@@ -19,10 +19,10 @@ class PhotoService
             return null;
         }
 
-        $mimeType = preg_match('#^data:(image/[\w.+-]+);base64,#i', $dataUrl, $matches)
+        $mimeType = preg_match('#^data:(image/(?:jpeg|png));base64,#i', $dataUrl, $matches)
             ? strtolower($matches[1])
             : null;
-        $base64 = preg_replace('#^data:image/[\w.+-]+;base64,#i', '', $dataUrl);
+        $base64 = preg_replace('#^data:image/(?:jpeg|png);base64,#i', '', $dataUrl);
 
         if (! $base64 || $mimeType === null || ! str_starts_with($mimeType, 'image/')) {
             return null;
@@ -31,6 +31,13 @@ class PhotoService
         $image = base64_decode($base64, true);
 
         if ($image === false || $image === '' || strlen($image) > 2097152) {
+            return null;
+        }
+
+        $hasJpegSignature = str_starts_with($image, "\xFF\xD8\xFF");
+        $hasPngSignature = str_starts_with($image, "\x89PNG\r\n\x1A\n");
+        if (($mimeType === 'image/jpeg' && ! $hasJpegSignature)
+            || ($mimeType === 'image/png' && ! $hasPngSignature)) {
             return null;
         }
 
