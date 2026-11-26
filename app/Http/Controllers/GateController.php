@@ -123,6 +123,7 @@ class GateController extends Controller
             report($e);
         }
         $activitySince = now()->startOfSecond();
+        $activityDay = $activitySince->toDateString();
         $recentActivities = collect();
         $activityCount = 0;
 
@@ -136,7 +137,7 @@ class GateController extends Controller
                 ->first();
 
             $activitiesQuery = GateLog::with('visit')
-                ->whereDate('created_at', $activitySince->toDateString());
+                ->whereDate('created_at', $activityDay);
             $activityCount = (clone $activitiesQuery)->count();
             $recentActivities = (clone $activitiesQuery)
                 ->orderByDesc('created_at')
@@ -151,7 +152,7 @@ class GateController extends Controller
                 'dbDown' => true,
                 'recentActivities' => $recentActivities,
                 'activityCount' => $activityCount,
-                'activityDay' => $activitySince->toDateString(),
+                'activityDay' => $activityDay,
                 'activitySince' => $activitySince->toISOString(),
                 'qrError' => $qrError,
             ]);
