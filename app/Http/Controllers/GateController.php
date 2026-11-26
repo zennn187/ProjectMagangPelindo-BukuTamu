@@ -433,12 +433,29 @@ class GateController extends Controller
     protected function formatGateActivity(GateLog $log): array
     {
         $direction = $log->direction;
-        $name = $log->visit?->visitor_name ?? 'Data tamu tidak tersedia';
+        $visit = $log->visit;
+        $name = $visit?->visitor_name ?? 'Data tamu tidak tersedia';
+        $statusLabels = [
+            Visit::STATUS_PENDING => 'Belum diverifikasi',
+            Visit::STATUS_WAITING => 'Menunggu',
+            Visit::STATUS_ACTIVE => 'Di dalam',
+            Visit::STATUS_COMPLETED => 'Selesai',
+            Visit::STATUS_REJECTED => 'Ditolak',
+        ];
 
         return [
             'id' => $log->id,
             'visit_id' => $log->visit_id,
             'name' => $name,
+            'institution' => $visit?->visitor_institution,
+            'phone' => $visit?->visitor_phone,
+            'identity_number' => $visit?->identity_number,
+            'person_to_meet' => $visit?->person_to_meet,
+            'purpose' => $visit?->purpose,
+            'status' => $visit ? ($statusLabels[$visit->status] ?? $visit->status) : null,
+            'check_in_time' => $visit?->check_in_time?->format('d/m/Y H:i'),
+            'check_out_time' => $visit?->check_out_time?->format('d/m/Y H:i'),
+            'duration' => $visit?->durationText(),
             'direction' => $direction,
             'label' => $direction === GateLog::DIRECTION_OUT ? 'Checkout' : 'Check-in',
             'message' => $direction === GateLog::DIRECTION_OUT ? 'Kunjungan selesai' : 'Kedatangan tercatat',

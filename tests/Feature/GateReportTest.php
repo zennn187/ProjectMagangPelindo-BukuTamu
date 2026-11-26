@@ -64,6 +64,7 @@ class GateReportTest extends TestCase
             ->assertOk()
             ->assertSee('Gate Tamu 30')
             ->assertSee('Gate Tamu 26')
+            ->assertSee('data-activity-detail=', false)
             ->assertDontSee('Gate Tamu 25');
 
         $this->actingAs($user)
@@ -71,7 +72,11 @@ class GateReportTest extends TestCase
             ->assertOk()
             ->assertJsonPath('total', 30)
             ->assertJsonCount(25, 'items')
-            ->assertJsonPath('items.0.name', 'Gate Tamu 30');
+            ->assertJsonPath('items.0.name', 'Gate Tamu 30')
+            ->assertJsonPath('items.0.institution', 'PT Contoh')
+            ->assertJsonPath('items.0.identity_number', 'NIK-12345')
+            ->assertJsonPath('items.0.person_to_meet', 'Pegawai Uji')
+            ->assertJsonPath('items.0.purpose', 'Kunjungan pengujian laporan');
     }
 
     public function test_latest_feed_includes_phone_and_private_photo_url(): void
