@@ -1,6 +1,6 @@
 # Handoff Konteks Buku Tamu — Codex / Antigravity
 
-Dokumen ini merangkum konteks produk, keputusan UI, alur penting, pekerjaan terdahulu, dan kondisi perubahan terakhir agar agent baru dapat melanjutkan tanpa membaca seluruh riwayat chat. **Kode dan status Git saat ini tetap menjadi sumber kebenaran**; ringkasan ini tidak berarti semua perubahan sudah di-commit atau di-deploy.
+Dokumen ini merangkum konteks produk, keputusan UI, alur penting, pekerjaan terdahulu, dan kondisi perubahan terakhir agar agent baru dapat melanjutkan tanpa membaca seluruh riwayat chat. **Kode dan status Git saat ini tetap menjadi sumber kebenaran.** Commit/push terbaru sudah diverifikasi; status deployment Vercel tetap harus diperiksa terpisah.
 
 ## Instruksi untuk agent berikutnya
 
@@ -67,6 +67,44 @@ Palet utama didefinisikan di `tailwind.config.js` sebagai warna `bank`:
 - Registrasi publik akun dinonaktifkan karena default role user berisiko memberikan role admin; admin membuat akun melalui menu pengguna yang terlindungi.
 - Logout adalah POST; tampilkan jelas untuk penggunaan perangkat bersama. Jangan menaruh data privat di cache PWA.
 
+## Alur end-to-end sistem
+
+### A. Kunjungan melalui landing/kiosk
+
+1. Tamu membuka `/`, mengisi data kunjungan, dan memilih pegawai tujuan bila diperlukan. Daftar pegawai dimuat dari `/kiosk/employees` agar landing tidak harus menunggu query daftar pegawai.
+2. Jika tamu mengirim foto, `PhotoService` menormalisasi/mengompresnya; transaksi menyimpan kunjungan dan isi foto ke MySQL (`visits` dan `visit_photos`). Jangan menyimpan foto baru ke filesystem lokal Vercel yang ephemeral.
+3. Kunjungan masuk ke antrean dashboard dengan status awal sesuai flow kiosk (umumnya menunggu verifikasi). Status awal dan perubahan berikutnya dicatat di riwayat status jika audit service tersedia.
+4. Petugas membuka detail di dashboard, lalu menggunakan aksi check-in, tunggu, tolak, atau aksi lain yang relevan. Aksi dikirim melalui request async/JSON; halaman tidak perlu reload penuh.
+5. Setelah berhasil, status/angka antrean diperbarui dan UI memberi feedback singkat. Notifikasi eksternal yang menggunakan queue `sync` dijalankan setelah respons agar tidak menahan respons petugas.
+
+### B. Kunjungan melalui Gate
+
+1. Tamu mengisi `/gate/form`; kunjungan tersimpan sebagai sumber Gate (`source=gate`) dan QR/pass dapat dipakai untuk proses gate.
+2. Operator login lalu membuka `/gate/scanner`. Scanner memproses token melalui `POST /gate/scanner`; aksi masuk/keluar menghasilkan `GateLog` yang terkait dengan kunjungan.
+3. Panel **Aktivitas Hari Ini** membaca aktivitas dari database, bukan hanya state browser. Lima aktivitas terbaru tampil dahulu; daftar dapat diperluas/dilanjutkan untuk aktivitas hari itu melalui endpoint aktivitas.
+4. Fitur terbaru di sesi ini: nama aktivitas dapat di-hover atau ditekan. Kartu melayang menampilkan identitas/instansi/telepon, pegawai tujuan, keperluan, status, waktu check-in/check-out, durasi, serta detail event. Di ponsel, tap mengunci kartu; tombol tutup, Escape, dan klik di luar menutup kartu.
+5. Perubahan aktivitas baru harus mengikuti response endpoint yang sama dengan render awal. Jaga endpoint di balik auth; field identitas dan telepon bersifat sensitif.
+
+### C. Laporan dan antrean gate
+
+1. Petugas/admin membuka Kedatangan Tamu/Antrean Gate; controller mengambil record `Visit` dari database yang `source=gate`, memakai tanggal/pencarian yang dipilih, dan feed latest dapat dipoll untuk data baru.
+2. Laporan kunjungan umum mengambil data database untuk rentang mingguan, bulanan, 6 bulan, setahun, atau tanggal khusus. Ekspor Excel harus memakai filter/rentang yang sama dengan layar.
+3. Foto ditampilkan melalui endpoint privat; jangan mengembalikan BLOB pada list/API. API list cukup mengirim flag/URL foto yang aman.
+
+### D. Retensi, backup, dan restore admin
+
+1. Admin mengatur masa retensi foto dan data kunjungan secara terpisah di Pengelolaan Data.
+2. Sistem menampilkan estimasi record/foto terdampak; tidak boleh menghapus diam-diam ketika pengaturan berubah.
+3. Admin membuat dan mengunduh backup ZIP sebelum penghapusan, lalu melakukan aksi hapus dengan konfirmasi eksplisit.
+4. Jika data hilang, admin mengunggah backup valid. Restore memvalidasi format/checksum dan menggabungkan record yang hilang tanpa menimpa record existing.
+5. ZIP aplikasi bukan snapshot Aiven. Keduanya melindungi dari jenis kehilangan data berbeda; simpan file ZIP yang memuat PII/foto secara aman.
+
+### E. Siklus status dan hak akses
+
+- Status kunjungan bergerak melalui aksi yang tersedia pada flow: misalnya pending/waiting → active/check-in → completed/check-out, atau rejected. `VisitStatusService` adalah jalur utama mutasi status dan audit; jangan menambah update status langsung yang melewati service tanpa alasan kuat.
+- Data kiosk/form gate dapat dikirim publik; scanner, dashboard, foto, mutasi, laporan gate memerlukan autentikasi/verified; fitur pengelolaan/admin dan riwayat status memerlukan role admin sesuai route.
+- `GateLog` adalah jejak event scan masuk/keluar. `visit_status_histories` adalah audit perubahan status. Keduanya memiliki tujuan berbeda dan tidak saling menggantikan.
+
 ## Fitur penting yang sudah dibangun
 
 Ini adalah ringkasan berdasarkan checkpoint/riwayat pekerjaan. Verifikasi implementasi aktual sebelum mengubahnya.
@@ -105,16 +143,19 @@ Ini adalah ringkasan berdasarkan checkpoint/riwayat pekerjaan. Verifikasi implem
    - Beberapa checkpoint mencatat ketidaksamaan tinggi skeleton dengan landing asli yang perlu dibandingkan kembali jika tugas menyentuh loading UI.
    - Reduced motion, focus states, dan indikator koneksi/network/database telah ditambahkan di sejumlah halaman.
 
-## Pekerjaan terbaru yang belum di-commit
+## Pekerjaan terbaru — sudah commit dan push
 
 Saat dokumen ini dibuat:
 
 - Branch: `main`.
-- Commit dasar yang terlihat: `a34203d fix error scan gate`.
-- `git status --short` menunjukkan tiga file berubah:
+- Commit terbaru: `d85da5c perbaikan bagian scan gate v2`.
+- Commit tersebut terlihat pada `HEAD -> main` dan `origin/main`; `git status -sb` bersih pada pemeriksaan terakhir.
+- Pengguna mengonfirmasi commit dan push terbaru. Push sudah terverifikasi di `origin/main`; **deployment Vercel belum diverifikasi**.
+- Perubahan Scan Gate yang dibawa dalam commit tersebut:
   - `app/Http/Controllers/GateController.php`
   - `resources/views/gate/scanner.blade.php`
   - `tests/Feature/GateReportTest.php`
+  - Dokumen handoff ini dibuat untuk dibaca agent berikutnya.
 - Perubahan terbaru memungkinkan nama di bagian **Aktivitas Hari Ini** pada Scan Gate dibuka sebagai kartu detail:
   - Data detail meliputi nama, instansi, telepon, nomor identitas, pegawai tujuan, keperluan, status, check-in/check-out, durasi, serta jenis/waktu aktivitas.
   - Aktivitas awal dirender server-side; aktivitas tambahan dibuat dari response API dengan format yang sama.
@@ -128,7 +169,20 @@ Saat dokumen ini dibuat:
   - Pemeriksaan sintaks JavaScript inline di `scanner.blade.php`: lulus.
   - `git diff --check`: lulus.
   - `php artisan test tests\Feature\GateReportTest.php`: **tidak dapat berjalan**, karena PHP lokal tidak menemukan driver PDO SQLite (`could not find driver`); 0 assertions. Ini keterbatasan environment, bukan bukti tes lulus.
-- Belum ada commit, push, atau deployment yang dikonfirmasi untuk perubahan ini.
+- Push ke `origin/main` telah terverifikasi. Jangan mengulang commit atau push tanpa perubahan baru; cek deployment Vercel secara terpisah.
+
+## Perubahan logo terbaru — belum di-commit
+
+Setelah commit `d85da5c`, pengguna meminta agar seluruh pemakaian file wordmark `images/logo_pelindo.png` beralih ke logo transparan HD.
+
+- File logo baru yang tersedia di workspace awalnya bernama `public/images/pelindo_logo_transparan_HD.png`; namanya sudah disesuaikan menjadi `public/images/logo_pelindo_transparan_HD.png`.
+- Referensi lama sudah diganti pada:
+  - `resources/views/profile/edit.blade.php`
+  - `resources/views/layouts/operator.blade.php`
+  - `resources/views/gate/form.blade.php`
+  - `resources/views/components/splash.blade.php`
+- `logo_pelindo_aja.png` tidak diganti: itu aset mark/icon terpisah yang dipakai dalam tile kecil, bukan referensi ke wordmark lama `logo_pelindo.png`.
+- Perubahan logo dan pembaruan dokumen handoff ini **masih lokal dan belum di-commit/push**. Deployment belum diverifikasi. Jalankan pencarian referensi, `php artisan view:cache`, `npm run build`, dan `git diff --check` sebelum commit.
 
 ## Deployment, database, dan keamanan operasional
 

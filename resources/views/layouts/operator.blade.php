@@ -82,7 +82,7 @@
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
                 </button>
                 <div class="flex min-w-0 items-center gap-2">
-                    <img src="{{ asset('images/logo_pelindo.png') }}" alt="Logo Pelindo" class="h-7 w-20 object-contain">
+                    <img src="{{ asset('images/logo_pelindo_transparan_HD.png') }}" alt="Logo Pelindo" class="h-7 w-20 object-contain">
                     <span class="font-semibold text-sm">Buku Tamu</span>
                 </div>
                 <button type="button" @click="toggleTheme()" :aria-label="darkMode ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'" :title="darkMode ? 'Mode terang' : 'Mode gelap'" class="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bank-bg text-bank-navy ring-1 ring-bank-light transition-colors hover:bg-bank-light">

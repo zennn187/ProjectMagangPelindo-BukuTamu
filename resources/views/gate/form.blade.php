@@ -374,7 +374,7 @@
 <body>
     <div class="band">
         <div class="band-inner">
-            <img src="{{ asset('images/logo_pelindo.png') }}" alt="Pelindo" class="logo">
+            <img src="{{ asset('images/logo_pelindo_transparan_HD.png') }}" alt="Pelindo" class="logo">
             <h1>Form Kedatangan Tamu</h1>
             <p>Security Post · PT. Pelindo (Persero) Regional 1 Dumai</p>
         </div>

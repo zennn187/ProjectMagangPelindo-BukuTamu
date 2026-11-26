@@ -1,6 +1,6 @@
 
 @php($splashDuration = $duration ?? 2)
-@php($splashLogo = file_exists(public_path('images/logo_pelindo.png')) ? asset('images/logo_pelindo.png') : null)
+@php($splashLogo = file_exists(public_path('images/logo_pelindo_transparan_HD.png')) ? asset('images/logo_pelindo_transparan_HD.png') : null)
 
 <div id="bukutamu-splash" class="bukutamu-splash" role="status" aria-label="Memuat Buku Tamu Pelindo">
     <div class="bukutamu-splash-inner">
